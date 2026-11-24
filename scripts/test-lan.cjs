@@ -56,7 +56,7 @@ async function waitForServer(){
   assert.equal((await request('/api/topup/requests',{key:'wrong-key'})).status,403);
 
   const scan=await request('/api/device/scan',{key:sellerKey});
-  assert.equal(scan.status,200);assert.equal(scan.data.readOnly,true);
+  assert.equal(scan.status,200);assert.equal(scan.data.ok,true);assert.ok(Array.isArray(scan.data.devices));if(scan.data.adb)assert.equal(scan.data.readOnly,true);else assert.match(scan.data.message,/ADB/);
   const ai=await request('/api/ai/assist',{method:'POST',key:sellerKey,body:{task:'diagnosis',context:'اختبار تشخيص تجريبي'}});
   assert.ok([200,502,503].includes(ai.status));
 

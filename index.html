@@ -73,7 +73,7 @@ $('salesTable').innerHTML=table(['التاريخ','المنتج','الزبون',
 $('recentSales').innerHTML=table(['المنتج','الزبون','القيمة'],db.sales.slice(0,5).map(s=>'<tr><td>'+esc(s.product)+'</td><td>'+esc(s.customer)+'</td><td>'+money(s.total)+'</td></tr>'));
 $('lowStock').innerHTML=db.products.filter(p=>p.qty<=3).map(p=>'<p>'+esc(p.name)+' <span class="tag red">المتبقي '+p.qty+'</span></p>').join('')||'<p class="muted">لا توجد تنبيهات حالياً</p>';
 $('staffTable').innerHTML=table(['العامل','المنصب','الأجر','ملاحظات','إجراء'],db.workers.map(w=>'<tr><td>'+esc(w.name)+'</td><td>'+esc(w.role)+'</td><td>'+money(w.salary)+'</td><td>'+esc(w.note)+'</td><td><button class="danger small" onclick="delItem(\'workers\','+w.id+')">حذف</button></td></tr>'));
-$('rSales').textContent=money(total);$('rPaid').textContent=money(paid);$('rDebt').textContent=money(debt);$('rCount').textContent=db.sales.length;$('reportTable').innerHTML=table(['الفترة','عدد العمليات','المبيعات'],[['كل الفترات',db.sales.length,money(total)].map(x=>'<td>'+x+'</td>').join('')?['كل الفترات',db.sales.length,money(total)].map(x=>'<td>'+x+'</td>').join(''):'']);
+$('rSales').textContent=money(total);$('rPaid').textContent=money(paid);$('rDebt').textContent=money(debt);$('rCount').textContent=db.sales.length;$('reportTable').innerHTML=table(['الفترة','عدد العمليات','المبيعات'],['<tr><td>كل الفترات</td><td>'+db.sales.length+'</td><td>'+money(total)+'</td></tr>']);
 }
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));

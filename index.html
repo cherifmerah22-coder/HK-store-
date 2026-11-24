@@ -332,9 +332,25 @@ function addSoftwareJob(){
 }
 function setSoftwareStatus(id,status){if(!['manager','tech'].includes(db.users[current]?.role))return;const j=db.softwareJobs.find(x=>x.id===id);if(j){j.status=status;j.updatedAt=new Date().toISOString();save()}}
 function suggestAccessories(){
- const model=$('accessoryModel').value.trim().toLowerCase(),type=$('accessoryType').value;if(!model)return alert('أدخل موديل الهاتف');
- const matches=db.products.filter(p=>p.category===type&&String(p.compatibleModels||'').toLowerCase().split(/[,،;\n]+/).map(x=>x.trim()).filter(Boolean).some(x=>x===model));
- $('accessoryResults').innerHTML=matches.length?'<b>مطابقات مسجلة في المخزون:</b>'+table(['المنتج','الكمية','السعر'],matches.map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+p.qty+'</td><td>'+money(p.sell)+'</td></tr>')):'لا توجد مطابقة دقيقة مسجلة. أضف موديل الهاتف ضمن قائمة التوافق للمنتج أولاً.';
+ const model=$('accessoryModel').value.trim().toLowerCase().replace(/\\s+/g,' '),type=$('accessoryType').value;
+ if(!model)return alert('أدخل موديل الهاتف');
+ const compatible=p=>String(p.compatibleModels||'').toLowerCase().split(/[,،;\\n]+/).map(x=>x.trim().replace(/\\s+/g,' ')).filter(Boolean).includes(model);
+ const exact=db.products.filter(p=>p.category===type&&compatible(p));
+ const available=exact.filter(p=>Number(p.qty)>0).sort((a,b)=>Number(b.qty)-Number(a.qty));
+ const empty=exact.filter(p=>Number(p.qty)<=0);
+ const rows=list=>list.map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+Number(p.qty)+'</td><td>'+money(p.sell)+'</td></tr>').join('');
+ let html='';
+ if(available.length){
+  html+='<div class="notice"><b>✅ منتجات متوافقة ومتوفرة لهذا الهاتف:</b>'+table(['المنتج','الكمية المتاحة','السعر'],available.map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+Number(p.qty)+'</td><td>'+money(p.sell)+'</td></tr>'))+'</div>';
+ }else if(exact.length){
+  html+='<div class="notice"><b>⚠️ نفد مخزون المنتج المطابق.</b><p>هذه المنتجات مسجلة على أنها متوافقة لكنها غير متوفرة حالياً:</p>'+table(['المنتج','الكمية','السعر'],empty.map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+Number(p.qty)+'</td><td>'+money(p.sell)+'</td></tr>'))+'</div>';
+ }
+ if(!available.length){
+  const alternatives=db.products.filter(p=>p.category===type&&Number(p.qty)>0&&compatible(p));
+  html+='<div class="notice"><b>بدائل متوافقة متوفرة:</b>'+(alternatives.length?table(['البديل','الكمية','السعر'],alternatives.map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+Number(p.qty)+'</td><td>'+money(p.sell)+'</td></tr>')):'<p>لا يوجد بديل متوافق مسجل ومتوفر في المخزون. لا تقترح واقياً عشوائياً؛ أضف منتجاً جديداً وسجّل موديل الهاتف ضمن قائمة التوافق بعد التأكد منه.</p>')+'</div>';
+ }
+ if(!exact.length)html='<div class="notice">لم تُسجّل أي منتجات من هذا النوع متوافقة مع '+esc(model)+'. أضف موديل الهاتف إلى بيانات توافق المنتجات بعد التحقق من المقاس والفتحات.</div>';
+ $('accessoryResults').innerHTML=html;
 }
 function addRepair(){if(!['manager','tech'].includes(db.users[current]?.role))return alert('غير مسموح');let customer=$('mCustomer').value.trim(),model=$('mModel').value.trim(),fault=$('mFault').value.trim(),cost=+$('mCost').value,paid=+$('mPaid').value;if(!customer||!model||!fault||cost<0||paid>cost)return alert('أكمل بيانات الجهاز وتحقق من المبالغ');let r={id:Date.now(),customer,phone:$('mPhone').value,device:$('mDevice').value,model,fault,cost,paid,balance:cost-paid,status:$('mStatus').value,...operationStamp(),technician:db.users[current].name};db.repairs.unshift(r);['mCustomer','mPhone','mModel','mFault','mCost'].forEach(x=>$(x).value='');$('mPaid').value=0;save();if(confirm('تم تسجيل الجهاز. هل تريد طباعة وصل استلام الصيانة؟'))printRepair(r)}
 function setRepairStatus(id,status){let x=db.repairs.find(r=>r.id===id);if(x){x.status=status;x.updatedAt=new Date().toISOString();x.updatedLocal=localDateParts();save()}}

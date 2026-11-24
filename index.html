@@ -332,9 +332,9 @@ function addSoftwareJob(){
 }
 function setSoftwareStatus(id,status){if(!['manager','tech'].includes(db.users[current]?.role))return;const j=db.softwareJobs.find(x=>x.id===id);if(j){j.status=status;j.updatedAt=new Date().toISOString();save()}}
 function suggestAccessories(){
- const model=$('accessoryModel').value.trim().toLowerCase().replace(/\\s+/g,' '),type=$('accessoryType').value;
+ const model=$('accessoryModel').value.trim().toLowerCase().replace(/\s+/g,' '),type=$('accessoryType').value;
  if(!model)return alert('أدخل موديل الهاتف');
- const compatible=p=>String(p.compatibleModels||'').toLowerCase().split(/[,،;\\n]+/).map(x=>x.trim().replace(/\\s+/g,' ')).filter(Boolean).includes(model);
+ const compatible=p=>String(p.compatibleModels||'').toLowerCase().split(/[,،;\n]+/).map(x=>x.trim().replace(/\s+/g,' ')).filter(Boolean).includes(model);
  const exact=db.products.filter(p=>p.category===type&&compatible(p));
  const available=exact.filter(p=>Number(p.qty)>0).sort((a,b)=>Number(b.qty)-Number(a.qty));
  const empty=exact.filter(p=>Number(p.qty)<=0);

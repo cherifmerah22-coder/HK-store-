@@ -133,6 +133,27 @@ img,svg,video,canvas{max-width:100%;height:auto}
 <div class="field"><label>وصف العطل</label><textarea id="swFault" rows="3" placeholder="صف الأعراض ومتى بدأت..."></textarea></div>
 <div class="field"><label>الاختبارات المنفذة</label><input id="swTests" placeholder="مثال: تجربة كابل آخر / Recovery"></div></div>
 <div class="actions"><button onclick="analyzeSoftwareWithAI()">🧠 تحليل HK AI</button><button class="secondary" onclick="analyzeSoftwareFault()">تشخيص محلي</button><button class="secondary" onclick="scanHKDevices()">كشف أجهزة USB</button><button class="secondary" onclick="clearSoftwareAnalysis()">مسح</button></div><div id="swDeviceResults" class="notice" style="margin-top:10px">وصّل الهاتف عبر USB وفعّل USB debugging لكشفه عبر ADB.</div><div id="swAnalysis" class="notice" style="margin-top:12px">أدخل الموديل ووصف العطل لعرض خطوات فحص أولية.</div></div>
+<div class="panel" style="margin-top:14px"><h3>🛡️ فحص توافق Firmware قبل التفليش</h3>
+<p class="muted">أدخل بيانات الجهاز والملف الرسمي يدوياً. هذه قائمة تحقق محلية؛ لا تتحقق تلقائياً من صحة الرابط أو الملف ولا تنفذ التفليش.</p>
+<div class="formgrid">
+<div class="field"><label>رقم الطراز الدقيق للجهاز</label><input id="fwModel" placeholder="مثال: SM-A155F"></div>
+<div class="field"><label>المنطقة / CSC / SKU</label><input id="fwRegion" placeholder="مثال: INS أو XSG أو Global"></div>
+<div class="field"><label>إصدار Bootloader الحالي</label><input id="fwBootloader" placeholder="أدخل القيمة المقروءة من الجهاز"></div>
+<div class="field"><label>إصدار Android الحالي</label><input id="fwAndroid" placeholder="مثال: Android 14"></div>
+<div class="field"><label>رقم بناء Firmware المستهدف</label><input id="fwBuild" placeholder="رقم البناء الكامل"></div>
+<div class="field"><label>مصدر Firmware الرسمي (HTTPS)</label><input id="fwSource" type="url" placeholder="https://..."></div>
+<div class="field"><label>بصمة SHA-256 للملف</label><input id="fwHash" placeholder="64 خانة hex"></div>
+<div class="field"><label>ملاحظات التحقق</label><input id="fwNotes" placeholder="الموقع الرسمي، الإصدار، المنطقة..."></div>
+</div>
+<div class="formgrid" style="margin-top:12px">
+<label><input id="fwOwnerConsent" type="checkbox" style="width:auto"> موافقة الزبون موثقة وإثبات الملكية عند الحاجة</label>
+<label><input id="fwBackup" type="checkbox" style="width:auto"> تم التحقق من النسخ الاحتياطي ومخاطر فقدان البيانات</label>
+<label><input id="fwExactMatch" type="checkbox" style="width:auto"> تحققت يدوياً من تطابق رقم الطراز والمنطقة وإصدار Bootloader</label>
+</div>
+<div class="actions"><button onclick="checkFirmwareCompatibility()">تحقق من اكتمال البيانات</button><button class="secondary" onclick="clearFirmwareCheck()">مسح الحقول</button></div>
+<div id="fwCheckResult" class="notice" style="margin-top:12px">لن يسمح هذا الفحص باعتبار الملف آمناً تلقائياً. يجب التحقق من مصدره وتوقيعه وتوافقه عبر وثائق الشركة.</div>
+<div id="fwHistory" class="muted" style="margin-top:10px"></div>
+</div>
 <div class="panel" style="margin-top:14px"><h3>تسجيل خدمة سوفتوير</h3><div class="formgrid">
 <div class="field"><label>اسم الزبون</label><input id="swCustomer"></div><div class="field"><label>رقم الهاتف</label><input id="swPhone"></div><div class="field"><label>الجهاز والموديل</label><input id="swDevice"></div><div class="field"><label>IMEI / الرقم التسلسلي (اختياري)</label><input id="swImei"></div>
 <div class="field"><label>الخدمة</label><select id="swService"><option>تفليش / تثبيت النظام</option><option>تحديث النظام</option><option>إصلاح Bootloop / التوقف عند الشعار</option><option>إصلاح مشاكل الشبكة وSIM</option><option>إصلاح Wi-Fi / Bluetooth</option><option>نسخ احتياطي / استعادة بيانات</option><option>استرداد الحساب بالطرق الرسمية</option><option>فتح شبكة رسمي</option><option>تشخيص سوفتوير</option><option>خدمة أخرى</option></select></div>
@@ -297,6 +318,30 @@ function disablePrayerNotifications(){localStorage.removeItem('hkstore_prayer_al
 function checkPrayerNotification(){if(localStorage.getItem('hkstore_prayer_alerts')!=='1'||!prayerData||!('Notification'in window)||Notification.permission!=='granted')return;let now=new Date(),today=now.toLocaleDateString('en-CA'),minute=now.getHours()*60+now.getMinutes();for(let [k,name] of Object.entries(PRAYER_NAMES)){let v=prayerTimeValue(prayerData.timings[k]),m=Number(v.slice(0,2))*60+Number(v.slice(3,5)),id=today+'_'+k;if(m===minute&&!localStorage.getItem('hkstore_prayer_alerted_'+id)){new Notification('حان الآن وقت صلاة '+name,{body:'مواقيت الصلاة — الحاسي تمهريت'});localStorage.setItem('hkstore_prayer_alerted_'+id,'1')}}}
 setInterval(()=>{if(prayerData){renderPrayerTimes();checkPrayerNotification()}},15000);
 
+function clearFirmwareCheck(){
+ ['fwModel','fwRegion','fwBootloader','fwAndroid','fwBuild','fwSource','fwHash','fwNotes'].forEach(id=>$(id).value='');
+ ['fwOwnerConsent','fwBackup','fwExactMatch'].forEach(id=>$(id).checked=false);
+ $('fwCheckResult').textContent='تم مسح الحقول. أدخل بيانات الجهاز والملف للتحقق من اكتمالها.';
+}
+function renderFirmwareHistory(){
+ let rows=[];try{rows=JSON.parse(localStorage.getItem('hkstore_fw_checks')||'[]')}catch{}
+ $('fwHistory').innerHTML=rows.length?'<b>آخر عمليات التحقق المحلية:</b><ul>'+rows.slice(0,5).map(x=>'<li>'+esc(x.model)+' — '+esc(x.build)+' — '+esc(x.date)+'</li>').join('')+'</ul>':'لا توجد عمليات تحقق محفوظة على هذا الجهاز.';
+}
+function checkFirmwareCompatibility(){
+ const v={model:$('fwModel').value.trim(),region:$('fwRegion').value.trim(),bootloader:$('fwBootloader').value.trim(),android:$('fwAndroid').value.trim(),build:$('fwBuild').value.trim(),source:$('fwSource').value.trim(),hash:$('fwHash').value.trim().toLowerCase(),notes:$('fwNotes').value.trim()};
+ const consent=$('fwOwnerConsent').checked,backup=$('fwBackup').checked,match=$('fwExactMatch').checked;
+ const missing=Object.entries({model:v.model,region:v.region,bootloader:v.bootloader,android:v.android,build:v.build,source:v.source,hash:v.hash}).filter(([,x])=>!x).map(([k])=>k);
+ if(missing.length){$('fwCheckResult').textContent='بيانات ناقصة. أكمل رقم الطراز والمنطقة وBootloader وAndroid ورقم البناء والمصدر والبصمة.';return}
+ if(!/^https:\/\//i.test(v.source)){ $('fwCheckResult').textContent='ارفض المصدر: يجب أن يكون رابط HTTPS لمصدر رسمي موثوق.';return}
+ if(!/^[a-f0-9]{64}$/.test(v.hash)){ $('fwCheckResult').textContent='صيغة SHA-256 غير صحيحة؛ يجب أن تتكون من 64 خانة hex.';return}
+ if(!consent||!backup||!match){$('fwCheckResult').textContent='توقف: لا تتابع قبل توثيق موافقة الزبون، النسخ الاحتياطي، والمطابقة اليدوية الدقيقة.';return}
+ const item={model:v.model,region:v.region,bootloader:v.bootloader,android:v.android,build:v.build,source:v.source,hash:v.hash,date:new Date().toLocaleString('ar-DZ')};
+ let rows=[];try{rows=JSON.parse(localStorage.getItem('hkstore_fw_checks')||'[]')}catch{}
+ rows.unshift(item);localStorage.setItem('hkstore_fw_checks',JSON.stringify(rows.slice(0,30)));
+ $('fwCheckResult').textContent='اكتملت قائمة البيانات والموافقات. هذا ليس إثباتاً لتوافق Firmware ولا تحققاً من سلامة الملف؛ يجب مطابقة بصمة الملف مع قيمة الشركة الرسمية والتأكد من التوقيع والإصدار قبل أي إجراء. التفليش غير متاح من هذه الشاشة.';
+ renderFirmwareHistory();
+}
+renderFirmwareHistory();
 setInterval(()=>{if(db.users[current]?.role==='customer')loadTabletConfig();else if(['manager','seller'].includes(db.users[current]?.role))refreshLanRequests()},5000);
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script></body></html>

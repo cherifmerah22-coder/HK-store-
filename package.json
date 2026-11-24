@@ -1,0 +1,39 @@
+{
+  "name": "hk-store",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HK STORE shop management app",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "prepare:web": "node -e \"const fs=require('fs');fs.rmSync('www',{recursive:true,force:true});fs.mkdirSync('www/icons',{recursive:true});for(const f of ['index.html','manifest.webmanifest','sw.js'])if(fs.existsSync(f))fs.copyFileSync(f,'www/'+f);if(fs.existsSync('icons'))for(const f of fs.readdirSync('icons'))fs.copyFileSync('icons/'+f,'www/icons/'+f)\"",
+    "android:sync": "npm run prepare:web && cap sync android",
+    "windows": "npm run prepare:web && electron-builder --win portable"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/core": "^7.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.3",
+    "electron": "^37.2.6",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "dz.hkstore.app",
+    "productName": "HK STORE",
+    "files": [
+      "electron/**/*",
+      "www/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "artifactName": "HK-STORE-Setup-${version}.${ext}"
+    }
+  }
+}

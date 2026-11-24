@@ -47,6 +47,8 @@ jobs:
         run: npm install
       - name: Check JavaScript syntax
         run: node scripts/check-syntax.cjs
+      - name: Test LAN API integration
+        run: node scripts/test-lan.cjs
       - name: Prepare app files
         run: npm run prepare:web
       - name: Build Windows portable EXE

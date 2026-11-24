@@ -45,6 +45,8 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
+      - name: Test password hashing and legacy migration
+        run: node scripts/test-auth.cjs
       - name: Check JavaScript syntax
         run: node scripts/check-syntax.cjs
       - name: Test LAN API integration

@@ -225,9 +225,15 @@ async function salesAccessoryAI(){
  catch(e){out.textContent='تعذر تشغيل HK AI: '+e.message}
 }
 async function scanHKDevices(){
- const out=$('swDeviceResults');out.textContent='جارٍ البحث عن أجهزة Android عبر ADB...';
- try{if(!lanSettings.url||!lanSettings.key)throw Error('خادم Windows غير متصل');const r=await fetch(lanSettings.url+'/api/device/scan',{headers:{'x-hk-key':lanSettings.key}});const d=await r.json();if(!r.ok)throw Error(d.message||d.error||'فشل الفحص');if(!d.adb){out.textContent=d.message;return}out.textContent=d.devices.length?d.devices.map(x=>'الجهاز: '+x.serial+'\\nالحالة: '+x.state+'\\nالشركة: '+(x.manufacturer||'غير معروفة')+'\\nالموديل: '+(x.model||'غير معروف')).join('\\n\\n'):'لم يتم العثور على جهاز. تحقق من كابل البيانات وUSB debugging وتعريفات الشركة.'}
- catch(e){out.textContent='تعذر فحص الجهاز: '+e.message}
+ const out=$('swDeviceResults');out.textContent='جارٍ البحث عن أجهزة Android وقراءة بيانات التعريف عبر ADB...';
+ try{
+  if(!lanSettings.url||!lanSettings.key)throw Error('خادم Windows غير متصل');
+  const r=await fetch(lanSettings.url+'/api/device/scan',{headers:{'x-hk-key':lanSettings.key}});
+  const d=await r.json();if(!r.ok)throw Error(d.message||d.error||'فشل الفحص');
+  if(!d.adb){out.textContent=d.message;return}
+  out.innerHTML=d.devices.length?d.devices.map(x=>'<div style="padding:10px 0;border-bottom:1px solid var(--line)"><b>📱 '+esc((x.manufacturer||'')+' '+(x.model||'جهاز غير معروف'))+'</b><p>حالة الاتصال: '+esc(x.state)+'</p><p>الرقم التعريفي USB: '+esc(x.serial)+'</p><p>Codename: '+esc(x.codename||'غير متاح')+' | Product: '+esc(x.product||'غير متاح')+'</p><p>إصدار Android: '+esc(x.androidVersion||'غير متاح')+'</p><details><summary>بصمة النظام (Build fingerprint)</summary><small style="overflow-wrap:anywhere">'+esc(x.buildFingerprint||'غير متاحة')+'</small></details></div>').join(''):'لم يتم العثور على جهاز. تحقق من كابل البيانات وUSB debugging وتعريفات الشركة.';
+  out.innerHTML+='<p class="muted">تمت قراءة معلومات تعريفية فقط. لم تُنفذ أي أوامر تعديل أو مسح أو تفليش.</p>';
+ }catch(e){out.textContent='تعذر فحص الجهاز: '+e.message}
 }
 function addSoftwareJob(){
  const role=db.users[current]?.role;if(!['manager','tech'].includes(role))return alert('هذه الخدمة متاحة للمدير والتقني فقط');

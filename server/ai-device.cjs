@@ -7,7 +7,8 @@ const recent=new Map();
 function allowRate(key){
  const now=Date.now(),items=(recent.get(key)||[]).filter(t=>now-t<60000);
  if(items.length>=12)return false;
- items.push(now);recent.set(key,items);return true;
+ items.push(now);recent.set(key,items);
+ return true;
 }
 async function aiAssist(body){
  const apiKey=process.env.HK_AI_API_KEY;
@@ -31,6 +32,12 @@ async function aiAssist(body){
  }catch(e){return {status:502,data:{error:'AI_CONNECTION_FAILED',message:e.name==='AbortError'?'انتهت مهلة الاتصال بمزود الذكاء الاصطناعي':'تعذر الاتصال بمزود الذكاء الاصطناعي'}}}
  finally{clearTimeout(timer)}
 }
+async function readDeviceValue(serial,command){
+ try{
+  const result=await execFileAsync('adb',['-s',serial,...command],{timeout:7000,maxBuffer:12000,windowsHide:true});
+  return String(result.stdout||'').trim().slice(0,240);
+ }catch{return ''}
+}
 async function scanAndroidDevices(){
  try{
   const {stdout}=await execFileAsync('adb',['devices','-l'],{timeout:12000,maxBuffer:20000,windowsHide:true});
@@ -39,14 +46,20 @@ async function scanAndroidDevices(){
   for(const line of lines){
    const parts=line.trim().split(/\s+/),serial=parts[0],state=parts[1]||'unknown';
    if(!serial||!/^[-A-Za-z0-9._:]{1,128}$/.test(serial))continue;
-   let model='',manufacturer='';
+   let model='',manufacturer='',codename='',androidVersion='',buildFingerprint='',product='';
    if(state==='device'){
-    try{const a=await execFileAsync('adb',['-s',serial,'shell','getprop','ro.product.model'],{timeout:7000,windowsHide:true});model=a.stdout.trim().slice(0,100)}catch{}
-    try{const a=await execFileAsync('adb',['-s',serial,'shell','getprop','ro.product.manufacturer'],{timeout:7000,windowsHide:true});manufacturer=a.stdout.trim().slice(0,100)}catch{}
+    [model,manufacturer,codename,androidVersion,buildFingerprint,product]=await Promise.all([
+     readDeviceValue(serial,['shell','getprop','ro.product.model']),
+     readDeviceValue(serial,['shell','getprop','ro.product.manufacturer']),
+     readDeviceValue(serial,['shell','getprop','ro.product.device']),
+     readDeviceValue(serial,['shell','getprop','ro.build.version.release']),
+     readDeviceValue(serial,['shell','getprop','ro.build.fingerprint']),
+     readDeviceValue(serial,['shell','getprop','ro.product.name'])
+    ]);
    }
-   devices.push({serial,state,model,manufacturer});
+   devices.push({serial,state,model,manufacturer,codename,androidVersion,buildFingerprint,product});
   }
-  return {status:200,data:{ok:true,adb:true,devices}};
+  return {status:200,data:{ok:true,adb:true,readOnly:true,devices}};
  }catch(e){
   const missing=e.code==='ENOENT';
   return {status:200,data:{ok:true,adb:false,devices:[],message:missing?'لم يتم العثور على ADB. ثبّت Android SDK Platform-Tools وأضف مجلد platform-tools إلى PATH.':'تعذر تشغيل ADB: '+String(e.message||e).slice(0,200)}};

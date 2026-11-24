@@ -115,5 +115,6 @@ $('partsTable').innerHTML=table(['القطعة','المرجع','الكمية','�
 $('topupTable').innerHTML=table(['التاريخ','المتعامل','المبلغ','رقم الهاتف','الحالة','إجراء'],db.topups.map(t=>'<tr><td>'+new Date(t.date).toLocaleString('ar-DZ')+'</td><td>'+esc(t.operator)+'</td><td>'+money(t.amount)+'</td><td>'+esc(t.phone)+'</td><td>'+esc(t.status)+'</td><td>'+(t.status==='بانتظار تأكيد البائع'?'<button class="small" onclick="confirmTopup('+t.id+')">تأكيد</button>':'-')+'</td></tr>'));renderTopupRows();\n$('rSales').textContent=money(total);$('rPaid').textContent=money(paid);$('rDebt').textContent=money(debt);$('rCount').textContent=db.sales.length;$('reportTable').innerHTML=table(['الفترة','عدد العمليات','المبيعات'],['<tr><td>كل الفترات</td><td>'+db.sales.length+'</td><td>'+money(total)+'</td></tr>']);
 }
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-setInterval(()=>{if(db.users[current]?.role==='customer')loadTabletConfig();else if(['manager','seller'].includes(db.users[current]?.role))refreshLanRequests()},5000);\nif('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+setInterval(()=>{if(db.users[current]?.role==='customer')loadTabletConfig();else if(['manager','seller'].includes(db.users[current]?.role))refreshLanRequests()},5000);
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script></body></html>

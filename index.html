@@ -541,8 +541,8 @@ const PRAYER_LAT=35.801168,PRAYER_LON=5.939716,PRAYER_METHOD=19;
 const PRAYER_NAMES={Fajr:'الفجر',Dhuhr:'الظهر',Asr:'العصر',Maghrib:'المغرب',Isha:'العشاء'};
 let prayerData=null,prayerLoadedDate='';
 function localPrayerDate(d=new Date()){return [String(d.getDate()).padStart(2,'0'),String(d.getMonth()+1).padStart(2,'0'),d.getFullYear()].join('-')}
-function prayerTimeValue(v){const m=String(v||'').match(/(\\d{1,2}:\\d{2})/);return m?m[1].padStart(5,'0'):''}
-function validPrayerData(data){return !!(data&&data.timings&&Object.keys(PRAYER_NAMES).every(k=>/^\\d{2}:\\d{2}$/.test(prayerTimeValue(data.timings[k]))))}
+function prayerTimeValue(v){const m=String(v||'').match(/(\d{1,2}:\d{2})/);return m?m[1].padStart(5,'0'):''}
+function validPrayerData(data){return !!(data&&data.timings&&Object.keys(PRAYER_NAMES).every(k=>/^\d{2}:\d{2}$/.test(prayerTimeValue(data.timings[k]))))}
 async function loadPrayerTimes(force=false){
  const date=localPrayerDate(),key='hkstore_prayer_'+date;
  if(!force&&prayerLoadedDate===date&&validPrayerData(prayerData)){renderPrayerTimes();return}

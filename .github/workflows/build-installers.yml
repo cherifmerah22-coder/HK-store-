@@ -49,6 +49,8 @@ jobs:
         run: node scripts/test-auth.cjs
       - name: Check JavaScript syntax
         run: node scripts/check-syntax.cjs
+      - name: Test role permissions and inventory validation
+        run: node scripts/test-permissions.cjs
       - name: Test LAN API integration
         run: node scripts/test-lan.cjs
       - name: Prepare app files

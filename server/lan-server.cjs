@@ -1,5 +1,6 @@
 'use strict';
 const http=require('http');
+const https=require('https');
 const fs=require('fs');
 const path=require('path');
 const os=require('os');
@@ -24,7 +25,7 @@ function lanAddresses(){const out=[];for(const list of Object.values(os.networkI
 function send(res,status,obj){res.writeHead(status,{'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*','access-control-allow-headers':'content-type,x-hk-key','access-control-allow-methods':'GET,POST,OPTIONS','cache-control':'no-store'});res.end(JSON.stringify(obj))}
 function read(req){return new Promise((resolve,reject)=>{let s='';req.on('data',c=>{s+=c;if(s.length>20000)reject(new Error('too large'))});req.on('end',()=>{try{resolve(s?JSON.parse(s):{})}catch(e){reject(e)}});req.on('error',reject)})}
 function localRequest(req){const a=req.socket.remoteAddress||'';return a==='127.0.0.1'||a==='::1'||a==='::ffff:127.0.0.1'}
-const server=http.createServer(async(req,res)=>{
+const handleRequest=async(req,res)=>{
  if(req.method==='OPTIONS'){res.writeHead(204,{'access-control-allow-origin':'*','access-control-allow-headers':'content-type,x-hk-key','access-control-allow-methods':'GET,POST,OPTIONS'});return res.end();}
  const url=new URL(req.url,'http://localhost');
  if(url.pathname==='/api/health'&&req.method==='GET')return send(res,200,{ok:true,service:'HK STORE LAN Top-up'});
@@ -94,6 +95,12 @@ const server=http.createServer(async(req,res)=>{
   item.status=b.status;item.confirmedAt=new Date().toISOString();persist();return send(res,200,{ok:true,item});
  }
  return send(res,404,{error:'not found'});
-});
-server.listen(8787,'0.0.0.0',()=>{console.log('HK STORE LAN top-up server on port 8787');console.log('LAN addresses:',lanAddresses().join(', '));console.log('Tablet key:',state.tabletKey);console.log('Seller key:',state.sellerKey)});
+};
+const tlsCertPath=process.env.HKSTORE_TLS_CERT||'';
+const tlsKeyPath=process.env.HKSTORE_TLS_KEY||'';
+if(Boolean(tlsCertPath)!==Boolean(tlsKeyPath))throw new Error('Set both HKSTORE_TLS_CERT and HKSTORE_TLS_KEY, or neither.');
+const secure=Boolean(tlsCertPath&&tlsKeyPath);
+const server=secure?https.createServer({cert:fs.readFileSync(path.resolve(tlsCertPath)),key:fs.readFileSync(path.resolve(tlsKeyPath)),minVersion:'TLSv1.2'},handleRequest):http.createServer(handleRequest);
+const bindHost=secure?'0.0.0.0':'127.0.0.1';
+server.listen(8787,bindHost,()=>{console.log('HK STORE LAN API '+(secure?'HTTPS (TLS 1.3 when supported)':'HTTP loopback only')+' on port 8787');console.log('LAN addresses:',secure?lanAddresses().join(', '):'disabled until TLS certificate is configured');});
 module.exports={server,lanAddresses};

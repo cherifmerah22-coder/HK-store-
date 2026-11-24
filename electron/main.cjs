@@ -1,5 +1,6 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
+require('../server/lan-server.cjs');
 function createWindow(){
   const win = new BrowserWindow({width:1280,height:850,minWidth:900,minHeight:650,backgroundColor:'#0d151d',autoHideMenuBar:true,webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true}});
   win.loadFile(path.join(__dirname,'..','www','index.html'));

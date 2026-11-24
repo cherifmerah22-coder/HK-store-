@@ -18,7 +18,69 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
 @media(max-width:850px){.service-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.service-tile{min-height:116px;padding:13px}}
  .customer-topup-summary{border:1px solid var(--gold);background:linear-gradient(145deg,#263b4c,#142330);border-radius:16px;padding:16px;display:grid;gap:12px;text-align:center}.customer-topup-summary .customer-topup-title{color:var(--muted);font-size:13px}.customer-topup-summary .customer-topup-value{font-size:22px;font-weight:800;color:var(--gold)}.customer-topup-summary .customer-topup-wait{font-size:15px;line-height:1.8;color:#f5d98c}.customer-topup-summary .customer-topup-status{font-size:12px;color:var(--muted)}
 .customer-welcome{position:relative;overflow:hidden;border-radius:18px;padding:18px;margin:-2px -2px 18px;background:radial-gradient(circle at 15% 20%,#31546a 0,transparent 34%),linear-gradient(130deg,#0b1823,#1d3b4d 58%,#253d4d);border:1px solid #496477;box-shadow:inset 0 1px 0 #ffffff12}.customer-welcome:after{content:"";position:absolute;width:180px;height:180px;border:1px solid #e7b84b35;border-radius:50%;left:-65px;bottom:-115px;box-shadow:0 0 0 18px #e7b84b0a,0 0 0 38px #e7b84b08}.welcome-top{display:flex;align-items:center;gap:10px;position:relative;z-index:1}.welcome-logo{width:46px;height:46px;border:2px solid var(--gold);border-radius:14px;display:grid;place-items:center;color:var(--gold);font-weight:900;font-size:21px;letter-spacing:-2px;background:#0d1b27}.welcome-brand{font-size:18px;font-weight:900;letter-spacing:1px}.welcome-brand small{display:block;font-size:10px;color:#c2d2dc;font-weight:400;letter-spacing:0;margin-top:3px}.welcome-spark{margin-right:auto;color:var(--gold);font-size:25px}.welcome-copy{position:relative;z-index:1;margin:22px 0 12px}.welcome-kicker{color:#f1cf7a;font-size:12px;font-weight:700}.welcome-copy h2{font-size:23px;margin:7px 0;color:#fff}.welcome-copy p{font-size:13px;color:#d4e1e9;margin:0;line-height:1.8}.welcome-art{display:flex;gap:9px;position:relative;z-index:1}.welcome-art span{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:#ffffff13;border:1px solid #ffffff20;font-size:21px}.welcome-footer{position:relative;z-index:1;border-top:1px solid #ffffff22;margin-top:15px;padding-top:10px;color:#f2d78e;font-size:11px}.customer-tablet-panel h3{color:var(--gold)}
-.hassi-scene{display:block;width:100%;height:auto;max-height:130px;margin-top:8px;border-radius:14px;opacity:.98}.welcome-location{text-align:center;color:#ffe3a0;font-size:12px;font-weight:700;margin-top:5px}.customer-welcome{background:radial-gradient(circle at 15% 20%,#4e8291 0,transparent 38%),linear-gradient(130deg,#123d52,#246b70 52%,#e58b52)!important;border-color:#e9bd69!important}.welcome-logo{background:#173a4a!important}.welcome-kicker{color:#ffe09a!important}.welcome-copy h2{color:#fff4d5!important}.welcome-copy p{color:#fff!important}.welcome-footer{color:#fff0bf!important;border-color:#ffffff55!important}.welcome-art span{background:#ffffff25!important;border-color:#ffffff50!important}</style></head>
+.hassi-scene{display:block;width:100%;height:auto;max-height:130px;margin-top:8px;border-radius:14px;opacity:.98}.welcome-location{text-align:center;color:#ffe3a0;font-size:12px;font-weight:700;margin-top:5px}.customer-welcome{background:radial-gradient(circle at 15% 20%,#4e8291 0,transparent 38%),linear-gradient(130deg,#123d52,#246b70 52%,#e58b52)!important;border-color:#e9bd69!important}.welcome-logo{background:#173a4a!important}.welcome-kicker{color:#ffe09a!important}.welcome-copy h2{color:#fff4d5!important}.welcome-copy p{color:#fff!important}.welcome-footer{color:#fff0bf!important;border-color:#ffffff55!important}.welcome-art span{background:#ffffff25!important;border-color:#ffffff50!important}
+/* HK STORE responsive layout hardening */
+html{min-height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{min-width:320px;width:100%;overflow-x:hidden}
+#app,.shell,main,.section,.panel,.card,.grid2,.cards,.formgrid{min-width:0}
+.shell{grid-template-columns:minmax(170px,220px) minmax(0,1fr);width:100%;max-width:100%}
+main{min-width:0;overflow-x:hidden}
+aside{min-width:0}
+.nav{min-width:0}
+.nav button{max-width:100%;overflow-wrap:anywhere}
+.page-title,.service-heading,.userbar,.brand{min-width:0;flex-wrap:wrap}
+.page-title>*{min-width:0}
+.field{min-width:0}
+input,select,textarea,button{max-width:100%}
+.tablewrap{max-width:100%;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.tablewrap table{min-width:560px}
+img,svg,video,canvas{max-width:100%;height:auto}
+@media(max-width:1100px){
+ .shell{grid-template-columns:190px minmax(0,1fr)}
+ main{padding:16px}
+ .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:850px){
+ .shell{display:flex;flex-direction:column;min-height:calc(100dvh - 70px)}
+ aside{width:100%;position:sticky;top:0;z-index:4}
+ .nav{display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;min-width:0;scrollbar-width:thin;padding-bottom:3px}
+ .nav button{flex:0 0 auto;white-space:nowrap}
+ main{width:100%;padding:clamp(10px,2.5vw,18px);margin:0}
+}
+@media(max-width:600px){
+ header{gap:8px;align-items:center}
+ .brand{gap:8px}
+ .logo{width:40px;height:40px;font-size:19px}
+ .brand h1{font-size:15px}
+ .brand small{font-size:10px}
+ .userbar{gap:5px}
+ .userbar button{padding:8px 10px}
+ .page-title{align-items:flex-start}
+ .page-title h2{font-size:clamp(17px,4.5vw,21px);overflow-wrap:anywhere}
+ .cards,.service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .grid2,.formgrid{grid-template-columns:minmax(0,1fr)}
+ .panel,.card{padding:clamp(10px,3vw,15px);border-radius:14px}
+ .service-tile{min-width:0;overflow-wrap:anywhere}
+ .actions>*{flex:1 1 auto}
+ th,td{padding:9px 7px;font-size:12px}
+}
+@media(max-width:360px){
+ .cards,.service-grid{grid-template-columns:minmax(0,1fr)}
+ header{padding:8px}
+ .brand small{display:none}
+ .page-title{gap:6px}
+ .actions{gap:6px}
+ .actions button{width:100%}
+}
+@media(max-height:520px) and (orientation:landscape){
+ header{position:relative}
+ .shell{min-height:0}
+ aside{position:relative}
+ main{padding:10px}
+ .login{margin:12px auto}
+}
+@supports(height:100dvh){body{min-height:100dvh}}
+</style></head>
 <body>
 <div id="loginView" class="login panel">
  <div class="logo">HK</div><h2>HK STORE</h2><p class="muted">نظام تسيير المحل</p>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#172b3b"/><stop offset="1" stop-color="#0b141d"/></linearGradient></defs>
+<rect width="512" height="512" rx="104" fill="url(#g)"/>
+<rect x="22" y="22" width="468" height="468" rx="86" fill="none" stroke="#e7b84b" stroke-width="16"/>
+<path d="M112 142v228h54v-94l94 94h76L222 252l108-110h-72l-92 95v-95z" fill="#e7b84b"/>
+<path d="M342 142h58v86h-58v-86zm0 120h58v108h-58V262z" fill="#fff"/>
+<text x="256" y="438" text-anchor="middle" font-family="Arial,sans-serif" font-size="40" font-weight="700" fill="#fff" letter-spacing="8">STORE</text>
+</svg>

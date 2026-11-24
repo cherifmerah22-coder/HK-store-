@@ -36,6 +36,15 @@ async function waitForServer(){
   assert.equal(local.status,200);assert.ok(local.data.tabletKey);assert.ok(local.data.sellerKey);
   const {tabletKey,sellerKey}=local.data;
 
+  assert.equal((await request('/api/topup/providers',{key:tabletKey})).status,403);
+  const providerCreate=await request('/api/topup/providers',{method:'POST',key:sellerKey,body:{name:'مزود تجريبي',operator:'Mobilis',adapter:'provider_specific',authType:'bearer',baseUrl:'https://api.example.test/v1',merchantId:'HK-DEMO',apiKey:'test-secret',apiSecret:'test-secret-2'}});
+  assert.equal(providerCreate.status,201);assert.equal(providerCreate.data.provider.hasApiKey,true);assert.equal(providerCreate.data.provider.hasApiSecret,true);assert.equal(JSON.stringify(providerCreate.data).includes('test-secret'),false);
+  const providerList=await request('/api/topup/providers',{key:sellerKey});assert.equal(providerList.status,200);assert.equal(providerList.data.providers.length,1);
+  const providerId=providerCreate.data.provider.id;
+  const providerTest=await request('/api/topup/providers/'+providerId+'/test',{method:'POST',key:sellerKey});assert.equal(providerTest.status,200);assert.equal(providerTest.data.testable,false);assert.equal(providerTest.data.status,'adapter_required');
+  assert.equal((await request('/api/topup/providers/'+providerId+'/toggle',{method:'POST',key:sellerKey,body:{enabled:true}})).status,409);
+  assert.equal((await request('/api/topup/providers',{method:'POST',key:sellerKey,body:{name:'bad',operator:'Mobilis',adapter:'generic_rest',baseUrl:'http://insecure.example',apiKey:'x'}})).status,400);
+  assert.equal((await request('/api/topup/providers/'+providerId,{method:'DELETE',key:sellerKey})).status,200);
   assert.equal((await request('/api/topup/config')).status,401);
   assert.equal((await request('/api/topup/config',{method:'POST',key:tabletKey,body:{operator:'Mobilis',amount:100}})).status,403);
   assert.equal((await request('/api/topup/config',{method:'POST',key:sellerKey,body:{operator:'Unknown',amount:100}})).status,400);

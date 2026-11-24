@@ -1,11 +1,21 @@
 {
+  "id": "./",
   "name": "HK STORE - إدارة المحل",
   "short_name": "HK STORE",
   "lang": "ar",
   "dir": "rtl",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0d151d",
   "theme_color": "#101820",
-  "description": "نظام تسيير المبيعات والمخزون والزبائن"
+  "description": "نظام تسيير المبيعات والمخزون والزبائن",
+  "icons": [
+    {
+      "src": "./icons/hk-store.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }

@@ -261,12 +261,12 @@ async function analyzeAccessoryWithAI(){
  catch(e){out.textContent='تعذر تشغيل HK AI: '+e.message}
 }
 function normalizeAccessoryModel(value){
- return String(value||'').normalize('NFKC').toLowerCase().replace(/[\\s\\-_.()\\[\\]]+/g,'').replace(/[^\\p{L}\\p{N}]/gu,'');
+ return String(value||'').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
 }
 function productSupportsModel(product,model){
  const wanted=normalizeAccessoryModel(model);
  if(!wanted)return false;
- return String(product.compatibleModels||'').split(/[,،;\\n]+/).some(alias=>normalizeAccessoryModel(alias)===wanted);
+ return String(product.compatibleModels||'').split(/[,،;\r\n]+/).some(alias=>normalizeAccessoryModel(alias)===wanted);
 }
 function accessorySpecCheck(product,type){
  const connector=String(product.connector||'').trim(),wattage=Number(product.wattage)||0;

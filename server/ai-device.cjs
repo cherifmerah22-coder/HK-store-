@@ -54,7 +54,9 @@ async function scanAndroidDevices(){
      readDeviceValue(serial,['shell','getprop','ro.product.device']),
      readDeviceValue(serial,['shell','getprop','ro.build.version.release']),
      readDeviceValue(serial,['shell','getprop','ro.build.fingerprint']),
-     readDeviceValue(serial,['shell','getprop','ro.product.name'])
+     readDeviceValue(serial,['shell','getprop','ro.product.name']),
+     readDeviceValue(serial,['shell','getprop','ro.boot.bootloader']),
+     readDeviceValue(serial,['shell','getprop','ro.boot.sales_code'])
     ]);
    }
    devices.push({serial,state,model,manufacturer,codename,androidVersion,buildFingerprint,product,bootloader,region});

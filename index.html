@@ -536,17 +536,62 @@ $('rSales').textContent=money(total);$('rPaid').textContent=money(paid);$('rDebt
 }
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
+// إحداثيات HK STORE: الحاسي تمهريت، باتنة. طريقة الحساب الجزائرية (19).
 const PRAYER_LAT=35.801168,PRAYER_LON=5.939716,PRAYER_METHOD=19;
 const PRAYER_NAMES={Fajr:'الفجر',Dhuhr:'الظهر',Asr:'العصر',Maghrib:'المغرب',Isha:'العشاء'};
-let prayerData=null;
+let prayerData=null,prayerLoadedDate='';
 function localPrayerDate(d=new Date()){return [String(d.getDate()).padStart(2,'0'),String(d.getMonth()+1).padStart(2,'0'),d.getFullYear()].join('-')}
-function prayerTimeValue(v){return String(v||'').split(' ')[0].slice(0,5)}
-async function loadPrayerTimes(force=false){let date=localPrayerDate(),key='hkstore_prayer_'+date;if(!force){try{prayerData=JSON.parse(localStorage.getItem(key)||'null')}catch{}}if(!prayerData||force){try{let url='https://api.aladhan.com/v1/timings/'+date+'?latitude='+PRAYER_LAT+'&longitude='+PRAYER_LON+'&method='+PRAYER_METHOD+'&school=0&timezonestring=Africa%2FAlgiers';let r=await fetch(url);if(!r.ok)throw Error('network');let j=await r.json();if(j.code!==200||!j.data?.timings)throw Error('response');prayerData=j.data;localStorage.setItem(key,JSON.stringify(prayerData))}catch(e){if(!prayerData){$('prayerCards').innerHTML='<div class="empty">تعذر تحميل المواقيت. تحقق من الإنترنت ثم اضغط تحديث.</div>';return}}}renderPrayerTimes()}
-function renderPrayerTimes(){if(!prayerData)return;let now=new Date(),n=now.getHours()*60+now.getMinutes(),items=Object.entries(PRAYER_NAMES).map(([k,name])=>{let v=prayerTimeValue(prayerData.timings[k]);return {key:k,name,time:v,mins:Number(v.slice(0,2))*60+Number(v.slice(3,5))}});let next=items.find(x=>x.mins>n),tomorrow=false;if(!next){next=items[0];tomorrow=true}let d=new Date();if(tomorrow)d.setDate(d.getDate()+1);d.setHours(Math.floor(next.mins/60),next.mins%60,0,0);let diff=Math.max(0,d-now),h=Math.floor(diff/3600000),m=Math.floor(diff%3600000/60000);$('prayerDate').textContent='مواقيت يوم '+(prayerData.date?.readable||now.toLocaleDateString('ar-DZ'));$('prayerHijri').textContent='الحاسي تمهريت — '+(prayerData.date?.hijri?.date||'')+' هـ';$('prayerCards').innerHTML=items.map(x=>'<div class="prayer-card '+(x.key===next.key&&!tomorrow?'next':'')+'"><b>'+x.name+'</b><strong>'+x.time+'</strong></div>').join('');$('nextPrayerBox').textContent='الصلاة القادمة: '+next.name+' — '+next.time+(tomorrow?' غداً':'')+' | المتبقي تقريباً: '+(h?h+' ساعة ':'')+m+' دقيقة'}
-async function enablePrayerNotifications(){if(!('Notification'in window))return alert('هذا الجهاز لا يدعم الإشعارات');let p=await Notification.requestPermission();if(p==='granted'){localStorage.setItem('hkstore_prayer_alerts','1');$('prayerNotice').textContent='التنبيهات مفعلة؛ تعمل عند بقاء التطبيق مفتوحاً والسماح بالإشعارات.';checkPrayerNotification();alert('تم تفعيل تنبيهات الصلاة')}else alert('لم يتم السماح بالإشعارات')}
-function disablePrayerNotifications(){localStorage.removeItem('hkstore_prayer_alerts');$('prayerNotice').textContent='تم إيقاف تنبيهات الصلاة'}
-function checkPrayerNotification(){if(localStorage.getItem('hkstore_prayer_alerts')!=='1'||!prayerData||!('Notification'in window)||Notification.permission!=='granted')return;let now=new Date(),today=now.toLocaleDateString('en-CA'),minute=now.getHours()*60+now.getMinutes();for(let [k,name] of Object.entries(PRAYER_NAMES)){let v=prayerTimeValue(prayerData.timings[k]),m=Number(v.slice(0,2))*60+Number(v.slice(3,5)),id=today+'_'+k;if(m===minute&&!localStorage.getItem('hkstore_prayer_alerted_'+id)){new Notification('حان الآن وقت صلاة '+name,{body:'مواقيت الصلاة — الحاسي تمهريت'});localStorage.setItem('hkstore_prayer_alerted_'+id,'1')}}}
-setInterval(()=>{if(prayerData){renderPrayerTimes();checkPrayerNotification()}},15000);
+function prayerTimeValue(v){const m=String(v||'').match(/(\\d{1,2}:\\d{2})/);return m?m[1].padStart(5,'0'):''}
+function validPrayerData(data){return !!(data&&data.timings&&Object.keys(PRAYER_NAMES).every(k=>/^\\d{2}:\\d{2}$/.test(prayerTimeValue(data.timings[k]))))}
+async function loadPrayerTimes(force=false){
+ const date=localPrayerDate(),key='hkstore_prayer_'+date;
+ if(!force&&prayerLoadedDate===date&&validPrayerData(prayerData)){renderPrayerTimes();return}
+ let cached=null;try{cached=JSON.parse(localStorage.getItem(key)||'null')}catch{}
+ if(!force&&validPrayerData(cached)){prayerData=cached;prayerLoadedDate=date;renderPrayerTimes();return}
+ const box=$('prayerCards');if(box)box.innerHTML='<div class="empty">جارٍ تحديث مواقيت الصلاة للحاسي تمهريت...</div>';
+ try{
+  const url='https://api.aladhan.com/v1/timings/'+date+'?latitude='+PRAYER_LAT+'&longitude='+PRAYER_LON+'&method='+PRAYER_METHOD+'&school=0&timezonestring=Africa%2FAlgiers';
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+  let response;try{response=await fetch(url,{signal:controller.signal,headers:{Accept:'application/json'}})}finally{clearTimeout(timer)}
+  if(!response.ok)throw Error('http_'+response.status);
+  const json=await response.json();if(json.code!==200||!validPrayerData(json.data))throw Error('invalid_prayer_data');
+  prayerData=json.data;prayerLoadedDate=date;localStorage.setItem(key,JSON.stringify(prayerData));
+  $('prayerNotice').textContent='المصدر: AlAdhan API — طريقة الحساب الجزائرية (19)، توقيت الجزائر. قد تختلف بعض الدقائق عن إعلان المسجد المحلي؛ اعتمد توقيت المسجد عند وجود فرق.';
+  renderPrayerTimes();
+ }catch(error){
+  if(validPrayerData(cached)){prayerData=cached;prayerLoadedDate=date;renderPrayerTimes();$('prayerNotice').textContent='تعذر الاتصال لتحديث المواقيت؛ المعروض هو الجدول المحفوظ لهذا اليوم. تحقق من الإنترنت.'}
+  else{$('prayerCards').innerHTML='<div class="empty">تعذر جلب مواقيت اليوم. تحقق من اتصال الإنترنت ثم اضغط «تحديث المواقيت».</div>';$('nextPrayerBox').textContent='لا يمكن تحديد الصلاة القادمة دون بيانات صحيحة.';$('prayerNotice').textContent='المصدر: AlAdhan API — طريقة الجزائر (19). لم يتم تحميل جدول اليوم.'}
+ }
+}
+function renderPrayerTimes(){
+ if(!validPrayerData(prayerData))return;
+ const now=new Date(),minute=now.getHours()*60+now.getMinutes();
+ const items=Object.entries(PRAYER_NAMES).map(([key,name])=>{const time=prayerTimeValue(prayerData.timings[key]),parts=time.split(':').map(Number);return {key,name,time,mins:parts[0]*60+parts[1]}});
+ let next=items.find(x=>x.mins>minute),tomorrow=false;if(!next){next=items[0];tomorrow=true}
+ const target=new Date(now);if(tomorrow)target.setDate(target.getDate()+1);target.setHours(Math.floor(next.mins/60),next.mins%60,0,0);
+ const diff=Math.max(0,target-now),hours=Math.floor(diff/3600000),mins=Math.floor(diff%3600000/60000);
+ $('prayerDate').textContent='مواقيت يوم '+(prayerData.date?.readable||now.toLocaleDateString('ar-DZ'));
+ $('prayerHijri').textContent='الحاسي تمهريت — '+(prayerData.date?.hijri?.date||'')+' هـ';
+ $('prayerCards').innerHTML=items.map(x=>'<div class="prayer-card '+(x.key===next.key&&!tomorrow?'next':'')+'"><b>'+x.name+'</b><strong>'+x.time+'</strong></div>').join('');
+ $('nextPrayerBox').textContent='الصلاة القادمة: '+next.name+' — '+next.time+(tomorrow?' غداً':'')+' | المتبقي تقريباً: '+(hours?hours+' ساعة ':'')+mins+' دقيقة';
+}
+async function enablePrayerNotifications(){
+ if(!('Notification'in window))return alert('هذا الجهاز لا يدعم الإشعارات');
+ if(!prayerData)await loadPrayerTimes();
+ if(!prayerData)return alert('حمّل مواقيت الصلاة أولاً ثم أعد تفعيل التنبيهات');
+ const permission=await Notification.requestPermission();
+ if(permission==='granted'){localStorage.setItem('hkstore_prayer_alerts','1');$('prayerNotice').textContent='التنبيهات مفعلة. يجب إبقاء التطبيق مفتوحاً والسماح بإشعارات النظام؛ قد يوقف النظام التنبيه عند إغلاق التطبيق أو تقييده.';checkPrayerNotification();alert('تم تفعيل تنبيهات الصلاة')}
+ else alert('لم يتم السماح بالإشعارات من إعدادات الجهاز');
+}
+function disablePrayerNotifications(){localStorage.removeItem('hkstore_prayer_alerts');$('prayerNotice').textContent='تم إيقاف تنبيهات الصلاة.'}
+function checkPrayerNotification(){
+ if(localStorage.getItem('hkstore_prayer_alerts')!=='1'||!validPrayerData(prayerData)||!('Notification'in window)||Notification.permission!=='granted')return;
+ const now=new Date(),today=localPrayerDate(now),minute=now.getHours()*60+now.getMinutes();
+ for(const [key,name] of Object.entries(PRAYER_NAMES)){const time=prayerTimeValue(prayerData.timings[key]),parts=time.split(':').map(Number),at=parts[0]*60+parts[1],id=today+'_'+key;
+  if(at===minute&&!localStorage.getItem('hkstore_prayer_alerted_'+id)){try{new Notification('حان الآن وقت صلاة '+name,{body:'مواقيت الصلاة — الحاسي تمهريت'});localStorage.setItem('hkstore_prayer_alerted_'+id,'1')}catch{}}
+ }
+}
+setInterval(()=>{const today=localPrayerDate();if(prayerLoadedDate&&prayerLoadedDate!==today)loadPrayerTimes(true);if(prayerData){renderPrayerTimes();checkPrayerNotification()}},15000);
 
 function clearFirmwareCheck(){
  ['fwModel','fwRegion','fwBootloader','fwAndroid','fwBuild','fwSource','fwHash','fwNotes'].forEach(id=>$(id).value='');

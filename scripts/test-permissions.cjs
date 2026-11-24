@@ -13,7 +13,9 @@ const checks=[
  ['restore',"db.users[current]?.role!=='manager'"],
  ['confirmTopup',"!['manager','seller'].includes(db.users[current]?.role)"],
  ['createUser',"db.users[current]?.role!=='manager'"],
- ['addCustomerOrder',"!['manager','seller'].includes(db.users[current]?.role)"]
+ ['addCustomerOrder',"!['manager','seller'].includes(db.users[current]?.role)"],
+ ['addRepair',"!['manager','tech'].includes(db.users[current]?.role)"],
+ ['setSoftwareStatus',"!['manager','tech'].includes(db.users[current]?.role)"]
 ];
 function body(name){
  const re=new RegExp('function\\s+'+name+'\\s*\\(');

@@ -46,9 +46,9 @@ async function scanAndroidDevices(){
   for(const line of lines){
    const parts=line.trim().split(/\s+/),serial=parts[0],state=parts[1]||'unknown';
    if(!serial||!/^[-A-Za-z0-9._:]{1,128}$/.test(serial))continue;
-   let model='',manufacturer='',codename='',androidVersion='',buildFingerprint='',product='';
+   let model='',manufacturer='',codename='',androidVersion='',buildFingerprint='',product='',bootloader='',region='';
    if(state==='device'){
-    [model,manufacturer,codename,androidVersion,buildFingerprint,product]=await Promise.all([
+    [model,manufacturer,codename,androidVersion,buildFingerprint,product,bootloader,region]=await Promise.all([
      readDeviceValue(serial,['shell','getprop','ro.product.model']),
      readDeviceValue(serial,['shell','getprop','ro.product.manufacturer']),
      readDeviceValue(serial,['shell','getprop','ro.product.device']),
@@ -57,7 +57,7 @@ async function scanAndroidDevices(){
      readDeviceValue(serial,['shell','getprop','ro.product.name'])
     ]);
    }
-   devices.push({serial,state,model,manufacturer,codename,androidVersion,buildFingerprint,product});
+   devices.push({serial,state,model,manufacturer,codename,androidVersion,buildFingerprint,product,bootloader,region});
   }
   return {status:200,data:{ok:true,adb:true,readOnly:true,devices}};
  }catch(e){

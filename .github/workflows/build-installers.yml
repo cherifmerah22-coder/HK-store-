@@ -45,6 +45,8 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
+      - name: Check JavaScript syntax
+        run: node scripts/check-syntax.cjs
       - name: Prepare app files
         run: npm run prepare:web
       - name: Build Windows portable EXE

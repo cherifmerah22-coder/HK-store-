@@ -23,7 +23,7 @@ vm.runInNewContext(helpers[0],context,{filename:'password-helpers'});
  assert.equal(await context.verifyPassword('wrong-password',userA),false);
  assert.equal(await context.verifyPassword('AnotherStrongPassword8!',userA),false);
  assert.equal(userA.passwordIterations,310000);
- assert.match(match[1],/u\.pin===p/,'legacy login migration path remains present');
+ assert.match(match[1],/Object\.prototype\.hasOwnProperty\.call\(u,'pin'\)/,'legacy login migration path remains present');
  assert.match(match[1],/u\.mustChangePassword=true/,'default manager password is forced to change');
  console.log('HK STORE password security tests passed: PBKDF2-SHA256, per-user salt, plaintext removal, valid/invalid password checks, legacy migration and default-manager change.');
 })().catch(error=>{console.error(error);process.exitCode=1});

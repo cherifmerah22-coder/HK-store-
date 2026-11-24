@@ -40,7 +40,7 @@ const server=http.createServer(async(req,res)=>{
  }
  if(url.pathname==='/api/topup/request'&&req.method==='POST'){
   if(!tablet)return send(res,403,{error:'tablet key required'});
-  const b=await read(req);const phone=String(b.phone||'').replace(/\\s/g,'');
+  const b=await read(req);const phone=String(b.phone||'').replace(/\s/g,'');
   if(!/^0[567][0-9]{8}$/.test(phone)||!state.config)return send(res,400,{error:'invalid phone or no active topup'});
   const item={id:crypto.randomUUID(),operator:state.config.operator,amount:state.config.amount,phone,status:'بانتظار مراجعة البائع',createdAt:new Date().toISOString()};
   state.requests.unshift(item);state.requests=state.requests.slice(0,500);persist();return send(res,201,{ok:true,request:{id:item.id,status:item.status}});

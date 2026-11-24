@@ -12,7 +12,7 @@ function allowRate(key){
 async function aiAssist(body){
  const apiKey=process.env.HK_AI_API_KEY;
  const model=process.env.HK_AI_MODEL||'gpt-4o-mini';
- const base=(process.env.HK_AI_BASE_URL||'https://api.openai.com/v1').replace(/\\/+$/,'');
+ const base=(process.env.HK_AI_BASE_URL||'https://api.openai.com/v1').replace(/\/+$/,'');
  if(!apiKey)return {status:503,data:{error:'AI_NOT_CONFIGURED',message:'لم يضبط المدير مفتاح مزود الذكاء الاصطناعي على جهاز Windows بعد.'}};
  const task=body.task==='accessory'?'accessory':'diagnosis';
  const context=String(body.context||'').slice(0,9000);
@@ -34,10 +34,10 @@ async function aiAssist(body){
 async function scanAndroidDevices(){
  try{
   const {stdout}=await execFileAsync('adb',['devices','-l'],{timeout:12000,maxBuffer:20000,windowsHide:true});
-  const lines=stdout.split(/\\r?\\n/).slice(1).filter(x=>x.trim());
+  const lines=stdout.split(/\r?\n/).slice(1).filter(x=>x.trim());
   const devices=[];
   for(const line of lines){
-   const parts=line.trim().split(/\\s+/),serial=parts[0],state=parts[1]||'unknown';
+   const parts=line.trim().split(/\s+/),serial=parts[0],state=parts[1]||'unknown';
    if(!serial||!/^[-A-Za-z0-9._:]{1,128}$/.test(serial))continue;
    let model='',manufacturer='';
    if(state==='device'){

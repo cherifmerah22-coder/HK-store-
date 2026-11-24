@@ -1,0 +1,11 @@
+{
+  "name": "HK STORE - إدارة المحل",
+  "short_name": "HK STORE",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0d151d",
+  "theme_color": "#101820",
+  "description": "نظام تسيير المبيعات والمخزون والزبائن"
+}

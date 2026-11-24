@@ -156,6 +156,27 @@ img,svg,video,canvas{max-width:100%;height:auto}
 <div id="fwCheckResult" class="notice" style="margin-top:12px">لن يسمح هذا الفحص باعتبار الملف آمناً تلقائياً. يجب التحقق من مصدره وتوقيعه وتوافقه عبر وثائق الشركة.</div>
 <div id="fwHistory" class="muted" style="margin-top:10px"></div>
 </div>
+<div class="panel" style="margin-top:14px"><h3>🧰 دليل أدوات التفليش والصيانة</h3>
+<p class="muted">هذا الدليل يساعد التقني على اختيار الأداة المناسبة. لا يشغّل ملفات خارجية ولا يرسل أوامر تفليش تلقائياً. افحص الملفات من مصدر موثوق واستخدم جهاز اختبار ونسخة احتياطية.</p>
+<div class="formgrid">
+<div class="field"><label>نوع الأداة / المسار</label><select id="flashToolChoice" onchange="showFlashToolGuide()">
+<option value="fastboot">Android Platform Tools — ADB / Fastboot</option>
+<option value="heimdall">Heimdall — أجهزة Samsung المدعومة</option>
+<option value="oem">أداة الشركة المصنّعة / مركز الخدمة</option>
+<option value="recovery">تحديث رسمي عبر Recovery / OTA</option>
+<option value="mtk">أجهزة MediaTek — أداة معتمدة ومتوافقة</option>
+<option value="qualcomm">أجهزة Qualcomm — أداة خدمة معتمدة</option>
+</select></div>
+<div class="field"><label>مرحلة العمل</label><select id="flashStage"><option>فحص الاتصال والتعريفات</option><option>تحديد وضع الجهاز (ADB / Fastboot / Recovery / Download)</option><option>التحقق من Firmware والتوقيع</option><option>نسخ احتياطي وموافقة الزبون</option><option>تنفيذ التفليش خارج HK STORE بعد التحقق</option><option>اختبار الإقلاع والشبكة والكاميرا والشحن</option></select></div>
+</div>
+<div id="flashToolGuide" class="notice" style="margin-top:10px">ADB للتشخيص وFastboot للأجهزة التي تدعم هذا البروتوكول. لا تستخدم أوامر مسح أو كتابة أقسام قبل التحقق من الطراز الدقيق وحالة Bootloader والملف.</div>
+<div class="actions">
+<a class="secondary" href="https://developer.android.com/tools/releases/platform-tools" target="_blank" rel="noopener">تحميل Android Platform Tools</a>
+<a class="secondary" href="https://github.com/Benjamin-Dobell/Heimdall" target="_blank" rel="noopener">Heimdall مفتوح المصدر</a>
+<a class="secondary" href="https://source.android.com/docs/setup/build/flash" target="_blank" rel="noopener">وثائق Android للتفليش</a>
+</div>
+<div class="notice" style="margin-top:10px"><b>قواعد إلزامية:</b> لا تفلّش ملفاً غير مطابق للطراز والمنطقة. لا تفصل الكابل أثناء الكتابة. لا تستخدم ملفات Preloader أو PIT أو أقساماً حساسة عشوائياً. أدوات MediaTek وQualcomm غير الرسمية قد تتلف الجهاز أو تحتوي برمجيات ضارة؛ لا تستخدمها إلا بعد التحقق من المصدر والتوافق والصلاحية. لا يوجد تجاوز FRP أو Activation Lock أو تغيير IMEI.</div>
+</div>
 <div class="panel" style="margin-top:14px"><h3>تسجيل خدمة سوفتوير</h3><div class="formgrid">
 <div class="field"><label>اسم الزبون</label><input id="swCustomer"></div><div class="field"><label>رقم الهاتف</label><input id="swPhone"></div><div class="field"><label>الجهاز المكتشف عبر ADB</label><select id="swDetectedDevice"><option value="">اختر جهازاً بعد كشف USB</option></select><button type="button" class="secondary small" onclick="applyDetectedSoftwareDevice()">استخدام بيانات الجهاز</button></div><div class="field"><label>الجهاز والموديل</label><input id="swDevice"></div><div class="field"><label>IMEI / الرقم التسلسلي (اختياري)</label><input id="swImei"></div>
 <div class="field"><label>الخدمة</label><select id="swService"><option>تفليش / تثبيت النظام</option><option>تحديث النظام</option><option>إصلاح Bootloop / التوقف عند الشعار</option><option>إصلاح مشاكل الشبكة وSIM</option><option>إصلاح Wi-Fi / Bluetooth</option><option>نسخ احتياطي / استعادة بيانات</option><option>استرداد الحساب بالطرق الرسمية</option><option>فتح شبكة رسمي</option><option>تشخيص سوفتوير</option><option>خدمة أخرى</option></select></div>
@@ -281,6 +302,18 @@ function applyDetectedSoftwareDevice(){
  $('swBrand').value=d.manufacturer||'';
  $('swModel').value=d.model||d.product||d.codename||'';
  $('swFault').focus();
+}
+function showFlashToolGuide(){
+ const guides={
+ fastboot:'Android Platform Tools: استخدم ADB لقراءة معلومات الجهاز وFastboot للأجهزة التي تدعمه. تحقق أولاً من fastboot devices وfastboot getvar product عند توفرهما. لا تستخدم أوامر flash أو erase إلا مع حزمة مطابقة وتعليمات موثقة للطراز.',
+ heimdall:'Heimdall مشروع مفتوح المصدر للتعامل مع بعض أجهزة Samsung في وضع Download. التوافق يختلف حسب الطراز وإصدار البروتوكول؛ اقرأ توثيق المشروع وتحقق من ملفات الأقسام قبل الاستخدام. لا تعتمد ملفات PIT عشوائية.',
+ oem:'الأفضل استخدام أداة الشركة أو مركز الخدمة المعتمد عندما تكون متاحة. اتبع إجراءات التحقق من الملكية وفتح Bootloader المسموح به رسمياً، مع توثيق الموافقة واحتمال مسح البيانات.',
+ recovery:'استخدم OTA أو حزمة Recovery الموقعة والمخصصة للطراز والمنطقة. تحقق من التوقيع ومصدر التنزيل وشحن البطارية، ولا تفرض تثبيت إصدار أقدم إذا كان Bootloader يمنع ذلك.',
+ mtk:'أجهزة MediaTek: تختلف أدوات الخدمة وملفات DA وScatter باختلاف المنصة والجهاز. لا تستخدم Download Agent أو Preloader مجهولاً؛ استخدم حزمة الشركة/الموزع الموثوق فقط. تجنب خيارات Format أو Auth bypass.',
+ qualcomm:'أجهزة Qualcomm: وضع EDL وأدوات QFIL/الخدمة تتطلب ملفات Firehose مطابقة ومصرحاً بها. لا تستخدم programmer مجهولاً ولا تمسح أقساماً أمنية أو بيانات معايرة.'
+ };
+ const key=$('flashToolChoice').value;
+ $('flashToolGuide').textContent=guides[key]||'اختر مساراً لعرض إرشادات السلامة والتوافق.';
 }
 function addSoftwareJob(){
  const role=db.users[current]?.role;if(!['manager','tech'].includes(role))return alert('هذه الخدمة متاحة للمدير والتقني فقط');

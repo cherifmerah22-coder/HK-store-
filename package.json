@@ -23,6 +23,7 @@
     "productName": "HK STORE",
     "files": [
       "electron/**/*",
+      "server/**/*",
       "www/**/*",
       "package.json"
     ],

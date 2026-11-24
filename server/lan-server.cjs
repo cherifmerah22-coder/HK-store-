@@ -10,10 +10,16 @@ const FILE=path.join(DATA_DIR,'topup-lan.json');
 fs.mkdirSync(DATA_DIR,{recursive:true});
 let state;
 try{state=JSON.parse(fs.readFileSync(FILE,'utf8'))}catch{
- state={tabletKey:crypto.randomBytes(24).toString('hex'),sellerKey:crypto.randomBytes(24).toString('hex'),config:null,requests:[]};
+ state={tabletKey:crypto.randomBytes(24).toString('hex'),sellerKey:crypto.randomBytes(24).toString('hex'),config:null,requests:[],providers:[]};
  fs.writeFileSync(FILE,JSON.stringify(state,null,2));
 }
+if(!Array.isArray(state.providers))state.providers=[];
 function persist(){fs.writeFileSync(FILE+'.tmp',JSON.stringify(state,null,2));fs.renameSync(FILE+'.tmp',FILE)}
+const PROVIDER_KEY_FILE=path.join(DATA_DIR,'provider-secrets.key');
+let providerMasterKey;
+try{providerMasterKey=fs.readFileSync(PROVIDER_KEY_FILE)}catch{providerMasterKey=crypto.randomBytes(32);fs.writeFileSync(PROVIDER_KEY_FILE,providerMasterKey,{mode:0o600});try{fs.chmodSync(PROVIDER_KEY_FILE,0o600)}catch{}}
+function sealSecret(value){if(!value)return null;const iv=crypto.randomBytes(12),cipher=crypto.createCipheriv('aes-256-gcm',providerMasterKey,iv);const encrypted=Buffer.concat([cipher.update(String(value),'utf8'),cipher.final()]);return {iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),data:encrypted.toString('base64')}}
+function publicProvider(p){return {id:p.id,name:p.name,operator:p.operator,adapter:p.adapter,baseUrl:p.baseUrl,merchantId:p.merchantId||'',authType:p.authType||'bearer',hasApiKey:!!p.apiKeyEnc,hasApiSecret:!!p.apiSecretEnc,enabled:!!p.enabled,status:p.status||'not-tested',createdAt:p.createdAt,updatedAt:p.updatedAt}}
 function lanAddresses(){const out=[];for(const list of Object.values(os.networkInterfaces()))for(const item of list||[])if(item.family==='IPv4'&&!item.internal)out.push(item.address);return out}
 function send(res,status,obj){res.writeHead(status,{'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*','access-control-allow-headers':'content-type,x-hk-key','access-control-allow-methods':'GET,POST,OPTIONS','cache-control':'no-store'});res.end(JSON.stringify(obj))}
 function read(req){return new Promise((resolve,reject)=>{let s='';req.on('data',c=>{s+=c;if(s.length>20000)reject(new Error('too large'))});req.on('end',()=>{try{resolve(s?JSON.parse(s):{})}catch(e){reject(e)}});req.on('error',reject)})}
@@ -41,6 +47,26 @@ const server=http.createServer(async(req,res)=>{
   const result=await scanAndroidDevices();return send(res,result.status,result.data);
  }
 
+ if(url.pathname.startsWith('/api/topup/providers')){
+  if(!seller)return send(res,403,{error:'seller key required'});
+  if(!localRequest(req))return send(res,403,{error:'manager console must run on Windows host'});
+  if(url.pathname==='/api/topup/providers'&&req.method==='GET')return send(res,200,{providers:state.providers.map(publicProvider)});
+  if(url.pathname==='/api/topup/providers'&&req.method==='POST'){
+   let b;try{b=await read(req)}catch{return send(res,400,{error:'invalid_json'})}
+   const name=String(b.name||'').trim(),operator=String(b.operator||''),adapter=String(b.adapter||''),baseUrl=String(b.baseUrl||'').trim();
+   if(!name||name.length>100||!['Mobilis','Djezzy','Ooredoo','مشترك / عام'].includes(operator)||!['generic_rest','provider_specific'].includes(adapter))return send(res,400,{error:'invalid_provider_fields'});
+   let parsed;try{parsed=new URL(baseUrl)}catch{return send(res,400,{error:'invalid_base_url'})}
+   if(parsed.protocol!=='https:'||parsed.username||parsed.password)return send(res,400,{error:'https_url_required'});
+   const id=crypto.randomUUID(),now=new Date().toISOString();
+   const p={id,name,operator,adapter,baseUrl:parsed.origin+parsed.pathname.replace(/\/$/,''),merchantId:String(b.merchantId||'').slice(0,120),authType:['bearer','api_key_header','basic','custom'].includes(b.authType)?b.authType:'bearer',apiKeyEnc:sealSecret(b.apiKey),apiSecretEnc:sealSecret(b.apiSecret),enabled:false,status:'not-tested',createdAt:now,updatedAt:now};
+   state.providers.push(p);persist();return send(res,201,{ok:true,provider:publicProvider(p),message:'saved_not_connected'});
+  }
+  const parts=url.pathname.split('/').filter(Boolean),id=parts[3],action=parts[4],p=state.providers.find(x=>x.id===id);
+  if(!p)return send(res,404,{error:'provider_not_found'});
+  if(action==='test'&&req.method==='POST'){p.status='adapter_required';p.enabled=false;p.updatedAt=new Date().toISOString();persist();return send(res,200,{ok:false,testable:false,status:p.status,message:'يلزم موصل مطابق لوثائق المزود قبل اختبار الاتصال أو تنفيذ التعبئة.'})}
+  if(action==='toggle'&&req.method==='POST'){let b;try{b=await read(req)}catch{return send(res,400,{error:'invalid_json'})}if(typeof b.enabled!=='boolean')return send(res,400,{error:'invalid_enabled'});if(b.enabled&&p.status!=='connected')return send(res,409,{error:'provider_not_connected'});p.enabled=b.enabled;p.updatedAt=new Date().toISOString();persist();return send(res,200,{ok:true,provider:publicProvider(p)})}
+  if(req.method==='DELETE'){state.providers=state.providers.filter(x=>x.id!==id);persist();return send(res,200,{ok:true})}
+ }
  if(url.pathname==='/api/topup/config'&&req.method==='GET'){
   if(!tablet&&!seller)return send(res,401,{error:'unauthorized'});
   return send(res,200,{config:state.config});

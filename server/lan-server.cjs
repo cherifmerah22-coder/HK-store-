@@ -26,8 +26,9 @@ const server=http.createServer(async(req,res)=>{
   return send(res,200,{port:8787,addresses:lanAddresses(),tabletKey:state.tabletKey,sellerKey:state.sellerKey});
  }
  const key=req.headers['x-hk-key'];
- const seller=key&&crypto.timingSafeEqual(Buffer.from(String(key)),Buffer.from(state.sellerKey));
- const tablet=key&&crypto.timingSafeEqual(Buffer.from(String(key)),Buffer.from(state.tabletKey));
+ const safeEqual=(a,b)=>{const x=Buffer.from(String(a||'')),y=Buffer.from(String(b||''));return x.length===y.length&&crypto.timingSafeEqual(x,y)};
+ const seller=safeEqual(key,state.sellerKey);
+ const tablet=safeEqual(key,state.tabletKey);
  if(url.pathname==='/api/topup/config'&&req.method==='GET'){
   if(!tablet&&!seller)return send(res,401,{error:'unauthorized'});
   return send(res,200,{config:state.config});

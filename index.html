@@ -136,6 +136,8 @@ img,svg,video,canvas{max-width:100%;height:auto}
 <div class="panel" style="margin-top:14px"><h3>🛡️ فحص توافق Firmware قبل التفليش</h3>
 <p class="muted">أدخل بيانات الجهاز والملف الرسمي يدوياً. هذه قائمة تحقق محلية؛ لا تتحقق تلقائياً من صحة الرابط أو الملف ولا تنفذ التفليش.</p>
 <div class="formgrid">
+<div class="field"><label>الجهاز المكتشف عبر ADB</label><select id="fwDetectedDevice"><option value="">اختر جهازاً بعد كشف USB</option></select></div>
+<div class="field"><label>تعبئة بيانات الجهاز المكتشف</label><button type="button" class="secondary" onclick="applyDetectedFirmwareDevice()">استخدام بيانات الجهاز</button></div>
 <div class="field"><label>رقم الطراز الدقيق للجهاز</label><input id="fwModel" placeholder="مثال: SM-A155F"></div>
 <div class="field"><label>المنطقة / CSC / SKU</label><input id="fwRegion" placeholder="مثال: INS أو XSG أو Global"></div>
 <div class="field"><label>إصدار Bootloader الحالي</label><input id="fwBootloader" placeholder="أدخل القيمة المقروءة من الجهاز"></div>
@@ -245,6 +247,18 @@ async function salesAccessoryAI(){
  $('salesAccessoryMatches').textContent=matches.length?'مطابقات دقيقة مسجلة: '+matches.map(p=>p.name+' (الكمية '+p.qty+')').join('، '):'لم تُسجل مطابقة دقيقة لهذا الموديل في المخزون. تحقق من رقم الموديل قبل البيع.'}
  catch(e){out.textContent='تعذر تشغيل HK AI: '+e.message}
 }
+let hkDetectedDevices=[];
+function applyDetectedFirmwareDevice(){
+ const idx=Number($('fwDetectedDevice').value);
+ const d=hkDetectedDevices[idx];
+ if(!d)return alert('اكشف الهاتف أولاً ثم اختر جهازاً من القائمة');
+ $('fwModel').value=d.model||'';
+ $('fwBootloader').value=d.bootloader||'';
+ $('fwAndroid').value=d.androidVersion||'';
+ if(d.region)$('fwRegion').value=d.region;
+ $('fwNotes').value='تم ملء بيانات الجهاز من ADB للقراءة فقط. تحقق يدوياً من المنطقة/CSC وإصدار Firmware المستهدف.';
+ $('fwCheckResult').textContent='تم نسخ البيانات المتاحة من الهاتف. المنطقة قد لا تكون متاحة عبر ADB؛ أكملها وتحقق من وثائق الشركة قبل أي تفليش.';
+}
 async function scanHKDevices(){
  const out=$('swDeviceResults');out.textContent='جارٍ البحث عن أجهزة Android وقراءة بيانات التعريف عبر ADB...';
  try{
@@ -252,6 +266,8 @@ async function scanHKDevices(){
   const r=await fetch(lanSettings.url+'/api/device/scan',{headers:{'x-hk-key':lanSettings.key}});
   const d=await r.json();if(!r.ok)throw Error(d.message||d.error||'فشل الفحص');
   if(!d.adb){out.textContent=d.message;return}
+  hkDetectedDevices=d.devices.filter(x=>x.state==='device');
+  $('fwDetectedDevice').innerHTML='<option value="">اختر جهازاً بعد كشف USB</option>'+hkDetectedDevices.map((x,i)=>'<option value="'+i+'">'+esc((x.manufacturer||'')+' '+(x.model||'جهاز غير معروف')+' — '+x.serial)+'</option>').join('');
   out.innerHTML=d.devices.length?d.devices.map(x=>'<div style="padding:10px 0;border-bottom:1px solid var(--line)"><b>📱 '+esc((x.manufacturer||'')+' '+(x.model||'جهاز غير معروف'))+'</b><p>حالة الاتصال: '+esc(x.state)+'</p><p>الرقم التعريفي USB: '+esc(x.serial)+'</p><p>Codename: '+esc(x.codename||'غير متاح')+' | Product: '+esc(x.product||'غير متاح')+'</p><p>إصدار Android: '+esc(x.androidVersion||'غير متاح')+'</p><details><summary>بصمة النظام (Build fingerprint)</summary><small style="overflow-wrap:anywhere">'+esc(x.buildFingerprint||'غير متاحة')+'</small></details></div>').join(''):'لم يتم العثور على جهاز. تحقق من كابل البيانات وUSB debugging وتعريفات الشركة.';
   out.innerHTML+='<p class="muted">تمت قراءة معلومات تعريفية فقط. لم تُنفذ أي أوامر تعديل أو مسح أو تفليش.</p>';
  }catch(e){out.textContent='تعذر فحص الجهاز: '+e.message}

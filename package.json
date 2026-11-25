@@ -21,26 +21,9 @@
   "build": {
     "appId": "dz.hkstore.app",
     "productName": "HK STORE",
-    "files": [
-      "electron/**/*",
-      "server/**/*",
-      "www/**/*",
-      "package.json"
-    ],
-    "directories": {
-      "output": "dist"
-    },
-    "win": {
-      "target": [
-        "portable"
-      ],
-      "artifactName": "HK-STORE-Setup-${version}.${ext}"
-    },
-    "extraResources": [
-      {
-        "from": "scripts/setup-local-ai.ps1",
-        "to": "setup-local-ai.ps1"
-      }
-    ]
+    "files": ["electron/**/*", "server/**/*", "www/**/*", "package.json"],
+    "directories": {"output": "dist"},
+    "win": {"target": ["portable"], "artifactName": "HK-STORE-Setup-${version}.${ext}"},
+    "extraResources": [{"from":"resources/ai","to":"ai","filter":["**/*"]}]
   }
 }

@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",
-    "@capacitor/core": "^7.4.3"
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/local-notifications": "^7.0.1"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.4.3",
@@ -21,9 +22,29 @@
   "build": {
     "appId": "dz.hkstore.app",
     "productName": "HK STORE",
-    "files": ["electron/**/*", "server/**/*", "www/**/*", "package.json"],
-    "directories": {"output": "dist"},
-    "win": {"target": ["portable"], "artifactName": "HK-STORE-Setup-${version}.${ext}"},
-    "extraResources": [{"from":"resources/ai","to":"ai","filter":["**/*"]}]
+    "files": [
+      "electron/**/*",
+      "server/**/*",
+      "www/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "artifactName": "HK-STORE-Setup-${version}.${ext}"
+    },
+    "extraResources": [
+      {
+        "from": "resources/ai",
+        "to": "ai",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
   }
 }

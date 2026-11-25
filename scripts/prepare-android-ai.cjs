@@ -129,10 +129,29 @@ const pluginSource = path.join(root, 'native', 'android', 'HKLocalAIPlugin.kt');
 requireFile(pluginSource);
 fs.copyFileSync(pluginSource, path.join(javaDir, 'HKLocalAIPlugin.kt'));
 
+const listenerSource = path.join(root, 'native', 'android', 'HKSomfyNotificationListener.kt');
+requireFile(listenerSource);
+fs.copyFileSync(listenerSource, path.join(javaDir, 'HKSomfyNotificationListener.kt'));
+
 const manifest = path.join(android, 'app', 'src', 'main', 'AndroidManifest.xml');
 requireFile(manifest);
 let xml = fs.readFileSync(manifest, 'utf8');
 if (!/android:largeHeap=/.test(xml)) xml = xml.replace('<application', '<application android:largeHeap="true"');
+if (!xml.includes('HKSomfyNotificationListener')) {
+  const service = [
+    '        <service',
+    '            android:name="dz.hkstore.app.HKSomfyNotificationListener"',
+    '            android:label="HK STORE — Somfy motion alerts"',
+    '            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"',
+    '            android:exported="true">',
+    '            <intent-filter>',
+    '                <action android:name="android.service.notification.NotificationListenerService" />',
+    '            </intent-filter>',
+    '        </service>'
+  ].join('\\n');
+  if (!xml.includes('</application>')) throw new Error('Cannot find Android application closing tag.');
+  xml = xml.replace('</application>', service + '\\n    </application>');
+}
 fs.writeFileSync(manifest, xml);
 
 console.log('Prepared arm64-v8a llama.cpp Android module and HKLocalAI Capacitor plugin.');

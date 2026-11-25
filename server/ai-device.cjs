@@ -25,10 +25,12 @@ async function aiAssist(body){
  if(!status.ok)return {status:503,data:{error:'LOCAL_AI_NOT_READY',message:status.message,model:status.model}};
  const base=(process.env.HK_OLLAMA_URL||'http://127.0.0.1:11434').replace(/\\/+$/,'');
  const model=process.env.HK_AI_MODEL||'qwen2.5:3b';
- const task=body.task==='accessory'?'accessory':'diagnosis';
+ const task=['accessory','welcome'].includes(body.task)?body.task:'diagnosis';
  const context=String(body.context||'').slice(0,9000);
  if(!context.trim())return {status:400,data:{error:'empty_context'}};
- const system=task==='diagnosis'
+ const system=task==='welcome'
+ ?'أنت مساعد استقبال زبائن لمحل HK STORE في الجزائر. اكتب جملة ترحيب واحدة قصيرة بالدارجة الجزائرية، محترمة وطبيعية، دون تخمين جنس الزبون أو عمره أو هويته أو سبب زيارته. لا تذكر أنك ذكاء اصطناعي. أخرج الجملة فقط، وبحد أقصى 18 كلمة.'
+ :task==='diagnosis'
  ?'أنت مساعد فني صيانة هواتف محترف. أجب بالعربية الواضحة وبالدارجة الجزائرية عند ملاءمة ذلك. حلل الأعراض والاختبارات، افصل الاحتمالات البرمجية عن المادية، وقدم خطوات آمنة مرتبة من الأقل خطورة. لا تخترع رقم Firmware أو رابط تنزيل أو توافقاً غير موثق. لا تقدم تجاوز FRP أو Activation Lock أو إزالة حماية أو تغيير IMEI. اذكر ضرورة موافقة الزبون والنسخ الاحتياطي قبل أي مسح أو تفليش. لا تجزم باستبدال قطعة قبل قياسها واختبارها.'
  :'أنت مساعد مبيعات إكسسوارات هواتف. حدد نوع القطعة والمواصفات المطلوبة بناء على موديل الهاتف الدقيق. لا تدّع أن منتجاً متوفر إلا إذا كان موجوداً في قائمة المخزون المرفقة. إن كانت بيانات الموديل غير كافية فاطلب التحقق من رقم الموديل أو قياس المنفذ والقدرة. لا تخترع توافقاً.';
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),120000);

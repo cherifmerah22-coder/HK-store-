@@ -15,7 +15,12 @@ const checks=[
  ['createUser',"db.users[current]?.role!=='manager'"],
  ['addCustomerOrder',"!['manager','seller'].includes(db.users[current]?.role)"],
  ['addRepair',"!['manager','tech'].includes(db.users[current]?.role)"],
- ['setSoftwareStatus',"!['manager','tech'].includes(db.users[current]?.role)"]
+ ['setSoftwareStatus',"!['manager','tech'].includes(db.users[current]?.role)"],
+ ['addManualCamera',"db.users[current]?.role!=='manager'"],
+ ['testManualCamera',"db.users[current]?.role!=='manager'"],
+ ['deleteManualCamera',"db.users[current]?.role!=='manager'"],
+ ['saveWelcomeCamera',"db.users[current]?.role!=='manager'"],
+ ['testWelcomeMessage',"db.users[current]?.role!=='manager'"]
 ];
 function body(name){
  const re=new RegExp('function\\s+'+name+'\\s*\\(');

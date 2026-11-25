@@ -31,7 +31,7 @@ fs.writeFileSync(cmakePath, cmake);
 const moduleGradle = [
   'plugins {',
   '    id("com.android.library")',
-  '    id("org.jetbrains.kotlin.android") version "2.3.0"',
+  '    id("org.jetbrains.kotlin.android")',
   '}',
   '',
   'android {',
@@ -79,6 +79,15 @@ if (!settings.includes("include ':hk-ai-engine'")) {
   fs.writeFileSync(settingsFile, settings);
 }
 
+const rootGradleFile = path.join(android, 'build.gradle');
+requireFile(rootGradleFile);
+let rootGradle = fs.readFileSync(rootGradleFile, 'utf8');
+if (!rootGradle.includes('kotlin-gradle-plugin')) {
+  if (!/dependencies\\s*\\{/.test(rootGradle)) throw new Error('Cannot find root Gradle dependencies block.');
+  rootGradle = rootGradle.replace(/dependencies\\s*\\{/, "dependencies {\\n        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.0'");
+  fs.writeFileSync(rootGradleFile, rootGradle);
+}
+
 const appGradleFile = path.join(android, 'app', 'build.gradle');
 requireFile(appGradleFile);
 let appGradle = fs.readFileSync(appGradleFile, 'utf8');
@@ -92,7 +101,7 @@ if (!/noCompress\s+['"]gguf['"]/.test(appGradle)) {
 }
 appGradle = appGradle.replace(/minSdkVersion\s+[^\s]+/g, 'minSdkVersion 33');
 appGradle = appGradle.replace(/minSdk\s*=\s*\d+/g, 'minSdk = 33');
-fs.writeFileSync(appGradleFile, appGradle);
+if (!appGradle.includes("apply plugin: 'org.jetbrains.kotlin.android'")) appGradle += "\\napply plugin: 'org.jetbrains.kotlin.android'\\n";\nfs.writeFileSync(appGradleFile, appGradle);
 
 const javaDir = path.join(android, 'app', 'src', 'main', 'java', ...appId.split('.'));
 fs.mkdirSync(javaDir, { recursive: true });

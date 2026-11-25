@@ -64,6 +64,25 @@ jobs:
           if ($size -lt 800000000) { throw "Downloaded GGUF model is unexpectedly small ($size bytes)." }
           Get-FileHash $model -Algorithm SHA256 | Format-List
           Invoke-WebRequest -Uri "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/LICENSE" -OutFile "resources/ai/LICENSE-QWEN.txt"
+      - name: Smoke-test bundled local AI runtime
+        shell: pwsh
+        run: |
+          $server = Start-Process -FilePath "resources/ai/bin/llama-server.exe" -ArgumentList @("--model","resources/ai/models/qwen2.5-1.5b-instruct-q4_k_m.gguf","--host","127.0.0.1","--port","11435","--ctx-size","1024","--n-gpu-layers","0") -PassThru -WindowStyle Hidden
+          try {
+            $ready = $false
+            for ($i = 0; $i -lt 90; $i++) {
+              if ($server.HasExited) { throw "llama-server exited before becoming ready." }
+              try { $health = Invoke-RestMethod "http://127.0.0.1:11435/health" -TimeoutSec 3; if ($health.status -eq "ok" -or $health) { $ready = $true; break } } catch {}
+              Start-Sleep -Seconds 2
+            }
+            if (-not $ready) { throw "Bundled AI server did not become healthy within 180 seconds." }
+            $body = @{ model = "qwen2.5-1.5b-instruct-q4_k_m.gguf"; messages = @(@{ role = "user"; content = "Reply with the single word OK." }); stream = $false; max_tokens = 12 } | ConvertTo-Json -Depth 6
+            $answer = Invoke-RestMethod -Uri "http://127.0.0.1:11435/v1/chat/completions" -Method Post -ContentType "application/json" -Body $body -TimeoutSec 120
+            if (-not $answer.choices[0].message.content) { throw "Bundled AI returned an empty answer." }
+            Write-Host "Bundled AI smoke test passed: $($answer.choices[0].message.content)"
+          } finally {
+            if ($server -and -not $server.HasExited) { Stop-Process -Id $server.Id -Force }
+          }
       - name: Install dependencies
         run: npm install
       - name: Test password hashing and legacy migration

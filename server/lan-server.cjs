@@ -19,6 +19,7 @@ try{fs.chmodSync(FILE,0o600)}catch{}
 if(!Array.isArray(state.providers))state.providers=[];
 if(!state.cameraEventToken)state.cameraEventToken=crypto.randomBytes(32).toString('hex');
 if(!Array.isArray(state.cameraEvents))state.cameraEvents=[];
+if(!Array.isArray(state.cameraConfigs))state.cameraConfigs=[];
 if(!Number.isInteger(state.cameraEventSeq))state.cameraEventSeq=state.cameraEvents.reduce((n,e)=>Math.max(n,Number(e.id)||0),0);
 function persist(){fs.writeFileSync(FILE+'.tmp',JSON.stringify(state,null,2),{mode:0o600});try{fs.chmodSync(FILE+'.tmp',0o600)}catch{}fs.renameSync(FILE+'.tmp',FILE);try{fs.chmodSync(FILE,0o600)}catch{}}
 const PROVIDER_KEY_FILE=path.join(DATA_DIR,'provider-secrets.key');
@@ -42,6 +43,24 @@ const handleRequest=async(req,res)=>{
  const safeEqual=(a,b)=>{const x=Buffer.from(String(a||'')),y=Buffer.from(String(b||''));return x.length===y.length&&crypto.timingSafeEqual(x,y)};
  const seller=safeEqual(key,state.sellerKey);
  const tablet=safeEqual(key,state.tabletKey);
+ if(url.pathname==='/api/camera/config'&&req.method==='GET'){
+  if(!seller||!localRequest(req))return send(res,403,{error:'manager_local_access_required'});
+  return send(res,200,{cameras:state.cameraConfigs.map(c=>({id:c.id,name:c.name,model:c.model,place:c.place,host:c.host,port:c.port,protocol:c.protocol,path:c.path,hasCredentials:!!(c.usernameEnc||c.passwordEnc),createdAt:c.createdAt}))});
+ }
+ if(url.pathname==='/api/camera/config'&&req.method==='POST'){
+  if(!seller||!localRequest(req))return send(res,403,{error:'manager_local_access_required'});
+  let b;try{b=await read(req)}catch{return send(res,400,{error:'invalid_json'})}
+  const name=String(b.name||'').trim(),host=String(b.host||'').trim(),model=String(b.model||'').slice(0,120),place=String(b.place||'').slice(0,120),protocol=String(b.protocol||'unknown'),port=Number(b.port||0),pathValue=String(b.path||'').slice(0,300);
+  const oct=host.split('.').map(Number),validIpv4=oct.length===4&&oct.every(n=>Number.isInteger(n)&&n>=0&&n<=255),privateIp=validIpv4&&(oct[0]===10||(oct[0]===192&&oct[1]===168)||(oct[0]===172&&oct[1]>=16&&oct[1]<=31));
+  if(!name||!privateIp||!['unknown','rtsp','onvif','http','vendor'].includes(protocol)||(port&&(!Number.isInteger(port)||port<1||port>65535)))return send(res,400,{error:'invalid_camera_fields',message:'أدخل اسماً وعنوان IPv4 خاصاً وبروتوكولاً ومنفذاً صحيحاً.'});
+  const id=crypto.randomUUID(),camera={id,name,model,place,host,port:port||null,protocol,path:pathValue,usernameEnc:sealSecret(b.username),passwordEnc:sealSecret(b.password),createdAt:new Date().toISOString()};
+  state.cameraConfigs.push(camera);state.cameraConfigs=state.cameraConfigs.slice(-100);persist();
+  return send(res,201,{ok:true,camera:{id,name,model,place,host,port:port||null,protocol,path:pathValue,hasCredentials:!!(b.username||b.password)},message:'saved_encrypted'});
+ }
+ if(url.pathname.startsWith('/api/camera/config/')&&req.method==='DELETE'){
+  if(!seller||!localRequest(req))return send(res,403,{error:'manager_local_access_required'});
+  const id=url.pathname.split('/').pop(),before=state.cameraConfigs.length;state.cameraConfigs=state.cameraConfigs.filter(c=>c.id!==id);if(before===state.cameraConfigs.length)return send(res,404,{error:'camera_not_found'});persist();return send(res,200,{ok:true});
+ }
  if(url.pathname==='/api/camera/event'&&req.method==='POST'){
   if(!safeEqual(req.headers['x-hk-camera-token'],state.cameraEventToken))return send(res,403,{error:'camera_event_token_required'});
   if(!allowRate('camera-event'))return send(res,429,{error:'camera_event_rate_limited'});

@@ -1,31 +1,29 @@
-# HK STORE Local AI (No API subscription)
+# HK STORE Local AI
 
-HK STORE uses a local Ollama model on the Windows shop computer. No OpenAI API key or paid API subscription is required for the local assistant.
+## Windows desktop
 
-## One-time setup on the Windows shop computer
+The Windows build packages the llama.cpp runtime and the Qwen2.5 1.5B GGUF model under the application's resources. On launch, Electron starts the local inference server on 127.0.0.1:11435 and checks its health. No Ollama installation, API key, or paid cloud AI service is required. Once packaged, model inference is local and can work offline.
 
-1. Install Ollama for Windows from https://ollama.com/download.
-2. Open PowerShell in the project folder and run:
-   `powershell -ExecutionPolicy Bypass -File .\\scripts\\setup-local-ai.ps1`
-3. The script downloads `qwen2.5:3b`. The first download needs internet access and several GB of free disk space.
-4. Keep Ollama running and start the HK STORE LAN server.
+The model is several hundred megabytes to over a gigabyte depending on quantization. The portable installer is therefore much larger than the web application. Performance depends on the computer's RAM and CPU.
 
-## Defaults
+## Android
 
-- Ollama URL: `http://127.0.0.1:11434`
-- Model: `qwen2.5:3b`
-- Override model with `HK_AI_MODEL`.
-- Override local Ollama URL with `HK_OLLAMA_URL`.
+The current Android workflow builds a Capacitor APK containing the web application only. It does **not** yet include a native llama.cpp Android runtime or the GGUF model. Therefore offline on-device AI is not available in this APK. The Android APK must not be described as having embedded AI until a native Android runtime, model packaging, and on-device inference tests have been completed.
 
-## Verify
+## Supported AI tasks
 
-After logging in on the Windows shop computer, HK STORE can connect to the loopback LAN service and the Software Lab provides **فحص جاهزية الذكاء الاصطناعي**. This calls `GET /api/ai/status` and reports Ollama reachability and installed models. Phone/computer repair diagnosis (with the current spare-parts list supplied as context), accessory compatibility notes, and short Algerian Darija welcome phrases use the local model. The manager/technician can request a repair analysis from the maintenance screen; the model suggests tests and candidate parts but must not declare a part faulty without measurement. The stock database remains the source of truth for actual product availability and exact compatibility.
+- Repair triage: organize symptoms and suggest safe diagnostic tests; it must not claim a component is faulty without measurement.
+- Accessory compatibility: request the exact phone model where needed and use stock data as the source of truth.
+- Short Algerian Darija welcome phrase: this is text generation only. Automatic camera-triggered greetings require a separately verified camera event integration.
 
-The default LAN service binds to loopback over HTTP when no TLS certificate is configured. In this mode AI works only from the Windows computer itself; Android/customer tablets cannot reach the Windows host. For cross-device access configure a trusted certificate with `HKSTORE_TLS_CERT` and `HKSTORE_TLS_KEY`, then use the HTTPS address.
+The assistant must not provide FRP/Activation Lock bypass, unauthorized lock removal, or IMEI alteration. Require the customer's authorization and a backup before destructive reset or flashing.
 
-## Notes
+## Network and security
 
-- No API key is sent to the Android app.
-- The first model download needs internet; after that, inference can run offline on the Windows computer.
-- Speed and answer quality depend on the shop computer's RAM, CPU, and GPU. A 3B model is a lightweight starting point, not a guarantee of expert-level repair diagnosis.
-- Local AI requests are protected by the seller-key check and a 12-request-per-minute rate limit. The server does not forward prompts to a cloud AI provider. Camera-triggered greetings require a verified motion-event bridge; see [CAMERA_INTEGRATION.md](./CAMERA_INTEGRATION.md).
+The AI inference endpoint binds to 127.0.0.1 on the Windows host. It is not exposed as an unauthenticated network service. Cross-device AI access requires a separately secured authenticated transport and must not be enabled by simply opening the model port.
+
+The LAN API uses its own authentication controls. HTTP is not equivalent to HTTPS; configure a trusted TLS certificate and key before transmitting credentials or sensitive information across a network.
+
+## Verification
+
+The Windows CI workflow builds llama.cpp, downloads the model, starts the local server, checks /health, sends a chat completion request, then runs the application tests. A CI pass verifies the runner environment only; it does not prove performance on every shop computer or compatibility with a particular camera.

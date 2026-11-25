@@ -51,6 +51,8 @@ jobs:
           test "$(stat -c%s android/app/src/main/assets/ai/qwen2.5-1.5b-instruct-q4_k_m.gguf)" -gt 800000000
           curl -fL "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/LICENSE" -o android/app/src/main/assets/ai/LICENSE-QWEN.txt
           sha256sum android/app/src/main/assets/ai/qwen2.5-1.5b-instruct-q4_k_m.gguf
+      - name: Validate Android AI preparation script
+        run: node --check scripts/prepare-android-ai.cjs
       - name: Add native llama.cpp runtime and Capacitor AI bridge
         run: node scripts/prepare-android-ai.cjs
       - name: Build Android APK with embedded offline AI

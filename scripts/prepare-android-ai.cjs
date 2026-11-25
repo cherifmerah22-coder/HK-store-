@@ -104,6 +104,9 @@ appGradle = appGradle.replace(/minSdk\s*=\s*\d+/g, 'minSdk = 33');
 if (!appGradle.includes("apply plugin: 'org.jetbrains.kotlin.android'")) {
   appGradle += "\napply plugin: 'org.jetbrains.kotlin.android'\n";
 }
+if (!appGradle.includes('kotlin { jvmToolchain(21) }')) {
+  appGradle += "\nkotlin { jvmToolchain(21) }\n";
+}
 fs.writeFileSync(appGradleFile, appGradle);
 
 const javaDir = path.join(android, 'app', 'src', 'main', 'java', ...appId.split('.'));

@@ -59,7 +59,6 @@ const moduleGradle = [
   '        targetCompatibility = JavaVersion.VERSION_17',
   '    }',
   '    kotlin { jvmToolchain(17) }',
-  '    aarMetadata { minCompileSdk = 35 }',
   '    packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }',
   '}',
   '',

@@ -22,12 +22,25 @@ function startBundledAI(){
  aiProcess.on('exit',(code)=>{console.error('Bundled AI runtime exited:',code);aiProcess=null;});
  return true;
 }
+async function waitForBundledAI(){
+ for(let attempt=0;attempt<90;attempt++){
+  if(!aiProcess||aiProcess.killed)return false;
+  try{
+   const response=await fetch('http://127.0.0.1:11435/health',{signal:AbortSignal.timeout(2500)});
+   if(response.ok){console.log('Bundled HK STORE AI is ready.');return true;}
+  }catch{}
+  await new Promise(resolve=>setTimeout(resolve,2000));
+ }
+ console.error('Bundled AI did not become ready within 180 seconds.');
+ return false;
+}
 function createWindow(){
  const win=new BrowserWindow({width:1280,height:850,minWidth:900,minHeight:650,backgroundColor:'#0d151d',autoHideMenuBar:true,webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true}});
  win.loadFile(path.join(__dirname,'..','www','index.html'));
 }
 app.whenReady().then(()=>{
- startBundledAI();
+ const aiStarted=startBundledAI();
+ if(aiStarted)waitForBundledAI();
  createWindow();
  app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createWindow();});
 });

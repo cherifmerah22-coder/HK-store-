@@ -223,7 +223,7 @@ async function setUserPassword(user,password){const salt=crypto.getRandomValues(
 async function verifyPassword(password,user){if(!user||!user.passwordHash||!user.passwordSalt)return false;const actual=await derivePassword(password,user.passwordSalt,Number(user.passwordIterations)||PASSWORD_ITERATIONS),expected=String(user.passwordHash).toLowerCase();if(actual.length!==expected.length)return false;let diff=0;for(let i=0;i<actual.length;i++)diff|=actual.charCodeAt(i)^expected.charCodeAt(i);return diff===0}
 function save(){localStorage.setItem('hkstore_db',JSON.stringify(db));render()}
 function resolveLoginUsername(value){const v=String(value||'').trim().toLowerCase();return v==='admin'||v==='المدير'?'manager':v}
-function refreshLoginUsers(){const sel=$('loginUser');if(!sel)return;const old=sel.value;sel.innerHTML=Object.entries(db.users).map(([k,u])=>'<option value="'+esc(k)+'">'+esc(u.name||k)+' — '+(u.role==='manager'?'مدير':u.role==='tech'?'تقني':u.role==='customer'?'زبون اللوح':'بائع')+'</option>').join('');if(db.users[old])sel.value=old}
+function refreshLoginUsers(){}
 function saveLanSettings(){let url=$('lanUrl').value.trim(),key=$('lanKey').value.trim();if(url.endsWith('/'))url=url.slice(0,-1);let parsed;try{parsed=new URL(url)}catch{return alert('أدخل عنوان اتصال صحيحاً يبدأ بـ https://')}if(parsed.protocol!=='https:')return alert('الاتصال بين الأجهزة يتطلب HTTPS وشهادة موثوقة. HTTP غير مسموح عبر الشبكة.');if(!key)return alert('أدخل رمز ربط اللوح');lanSettings={url,key};localStorage.setItem('hkstore_lan',JSON.stringify(lanSettings));alert('تم حفظ اتصال HTTPS الآمن')}
 async function login(){
  const username=resolveLoginUsername($('loginUsername').value),p=$('loginPin').value,u=db.users[username];

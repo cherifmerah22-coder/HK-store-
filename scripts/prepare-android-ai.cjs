@@ -59,12 +59,11 @@ const moduleGradle = [
   '        targetCompatibility = JavaVersion.VERSION_17',
   '    }',
   '    kotlin { jvmToolchain(17) }',
+  '    aarMetadata { minCompileSdk = 35 }',
   '    packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }',
   '}',
   '',
   'dependencies {',
-  '    implementation("androidx.core:core-ktx:1.17.0")',
-  '    implementation("androidx.datastore:datastore-preferences:1.2.0")',
   '    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")',
   '}',
   ''

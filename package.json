@@ -35,6 +35,12 @@
         "portable"
       ],
       "artifactName": "HK-STORE-Setup-${version}.${ext}"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "scripts/setup-local-ai.ps1",
+        "to": "setup-local-ai.ps1"
+      }
+    ]
   }
 }

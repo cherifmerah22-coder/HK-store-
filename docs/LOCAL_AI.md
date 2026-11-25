@@ -19,11 +19,13 @@ HK STORE uses a local Ollama model on the Windows shop computer. No OpenAI API k
 
 ## Verify
 
-With the LAN server running and the seller key configured, call `GET /api/ai/status` with header `x-hk-key`. It reports whether Ollama is reachable and whether the configured model is installed.
+After logging in on the Windows shop computer, HK STORE can connect to the loopback LAN service and the Software Lab provides **فحص جاهزية الذكاء الاصطناعي**. This calls `GET /api/ai/status` and reports Ollama reachability and installed models. Diagnosis, accessory compatibility notes, and short Algerian Darija welcome phrases use the local model. The stock database remains the source of truth for actual product availability and exact compatibility.
+
+The default LAN service binds to loopback over HTTP when no TLS certificate is configured. In this mode AI works only from the Windows computer itself; Android/customer tablets cannot reach the Windows host. For cross-device access configure a trusted certificate with `HKSTORE_TLS_CERT` and `HKSTORE_TLS_KEY`, then use the HTTPS address.
 
 ## Notes
 
 - No API key is sent to the Android app.
 - The first model download needs internet; after that, inference can run offline on the Windows computer.
 - Speed and answer quality depend on the shop computer's RAM, CPU, and GPU. A 3B model is a lightweight starting point, not a guarantee of expert-level repair diagnosis.
-- Local AI requests are still protected by the existing seller-key check and request rate limit.
+- Local AI requests are protected by the seller-key check and a 12-request-per-minute rate limit. The server does not forward prompts to a cloud AI provider.

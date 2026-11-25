@@ -52,7 +52,7 @@ class HKLocalAIPlugin : Plugin() {
                 call.resolve(JSObject().put("ok", true).put("provider", "llama.cpp-android-local"))
             } catch (e: Exception) {
                 Log.e("HKLocalAI", "Model initialization failed", e)
-                call.reject(e.message ?: "تعذر تشغيل نموذج الذكاء الاصطناعي.", e)
+                call.reject(e.message ?: "تعذر تشغيل نموذج الذكاء الاصطناعي.")
             }
         }
     }
@@ -88,7 +88,7 @@ class HKLocalAIPlugin : Plugin() {
                 })
             } catch (e: Exception) {
                 Log.e("HKLocalAI", "Inference failed", e)
-                call.reject(e.message ?: "تعذر تنفيذ التحليل المحلي.", e)
+                call.reject(e.message ?: "تعذر تنفيذ التحليل المحلي.")
             }
         }
     }

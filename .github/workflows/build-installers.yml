@@ -47,17 +47,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Build llama.cpp runtime
+      - name: Download and verify official llama.cpp Windows CPU runtime
         shell: pwsh
         run: |
-          git clone --depth 1 https://github.com/ggml-org/llama.cpp.git $env:RUNNER_TEMP/llama.cpp
-          cmake -S "$env:RUNNER_TEMP/llama.cpp" -B "$env:RUNNER_TEMP/llama-build" -A x64 -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_SERVER=ON -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF
-          cmake --build "$env:RUNNER_TEMP/llama-build" --config Release --target llama-server --parallel 2
+          $url = "https://github.com/ggml-org/llama.cpp/releases/download/b12720/llama-b12720-bin-win-cpu-x64.zip"
+          $expected = "27ac9fdbb5602ab671c4ab901f80521a9fabbcd0b0341ad497a3102633b45c46"
+          $zip = Join-Path $env:RUNNER_TEMP "llama-win-cpu.zip"
+          $extract = Join-Path $env:RUNNER_TEMP "llama-win-cpu"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw "llama.cpp runtime SHA256 mismatch: $actual" }
+          Expand-Archive -Path $zip -DestinationPath $extract -Force
           New-Item -ItemType Directory -Force resources/ai/bin, resources/ai/models | Out-Null
-          $server = Get-ChildItem "$env:RUNNER_TEMP/llama-build" -Filter llama-server.exe -Recurse | Select-Object -First 1
-          if (-not $server) { throw "llama-server.exe was not produced by the native build." }
+          $server = Get-ChildItem $extract -Filter llama-server.exe -Recurse | Select-Object -First 1
+          if (-not $server) { throw "Official archive does not contain llama-server.exe." }
           Copy-Item $server.FullName resources/ai/bin/llama-server.exe
           Get-ChildItem $server.DirectoryName -Filter *.dll | Copy-Item -Destination resources/ai/bin
+          if (-not (Test-Path resources/ai/bin/llama-server.exe)) { throw "Runtime copy failed." }
       - name: Download and verify bundled Apache-2.0 Qwen 1.5B model
         shell: pwsh
         run: |

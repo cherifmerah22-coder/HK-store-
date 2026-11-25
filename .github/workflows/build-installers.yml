@@ -86,7 +86,10 @@ jobs:
               Start-Sleep -Seconds 2
             }
             if (-not $ready) { throw "Bundled AI server did not become healthy within 180 seconds." }
-            $body = @{ model = "qwen2.5-1.5b-instruct-q4_k_m.gguf"; messages = @(@{ role = "user"; content = "Reply with the single word OK." }); stream = $false; max_tokens = 12 } | ConvertTo-Json -Depth 6
+            $models = Invoke-RestMethod -Uri "http://127.0.0.1:11435/v1/models" -TimeoutSec 10
+            $modelId = $models.data[0].id
+            if (-not $modelId) { throw "llama-server did not report a loaded model." }
+            $body = @{ model = $modelId; messages = @(@{ role = "user"; content = "Reply with the single word OK." }); stream = $false; max_tokens = 12 } | ConvertTo-Json -Depth 6
             $answer = Invoke-RestMethod -Uri "http://127.0.0.1:11435/v1/chat/completions" -Method Post -ContentType "application/json" -Body $body -TimeoutSec 120
             if (-not $answer.choices[0].message.content) { throw "Bundled AI returned an empty answer." }
             Write-Host "Bundled AI smoke test passed: $($answer.choices[0].message.content)"

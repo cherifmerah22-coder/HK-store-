@@ -43,14 +43,22 @@ const handleRequest=async(req,res)=>{
   let b;try{b=await read(req)}catch{return send(res,400,{error:'invalid_json'})}
   const host=String(b.host||'').trim(),port=Number(b.port||554);
   const oct=host.split('.').map(Number);
-  const privateIp=/^(10\\.|192\\.168\\.|172\\.(1[6-9]|2[0-9]|3[01])\\.)/.test(host);
-  if(oct.length!==4||oct.some(n=>!Number.isInteger(n)||n<0||n>255)||!privateIp||!Number.isInteger(port)||port<1||port>65535)return send(res,400,{error:'private_ipv4_and_valid_port_required',message:'يسمح فقط بعنوان IPv4 خاص داخل شبكة المحل ومنفذ صحيح.'});
+  const validIpv4=oct.length===4&&oct.every(n=>Number.isInteger(n)&&n>=0&&n<=255);
+  const privateIp=validIpv4&&(oct[0]===10||(oct[0]===192&&oct[1]===168)||(oct[0]===172&&oct[1]>=16&&oct[1]<=31));
+  if(!privateIp||!Number.isInteger(port)||port<1||port>65535)return send(res,400,{error:'private_ipv4_and_valid_port_required',message:'يسمح فقط بعنوان IPv4 خاص داخل شبكة المحل ومنفذ صحيح.'});
   const socket=new net.Socket();let done=false;
   const finish=(reachable,message)=>{if(done)return;done=true;socket.destroy();return send(res,200,{ok:true,reachable,message})};
-  socket.setTimeout(2500);socket.once('connect',()=>finish(true,'المنفذ مفتوح ويمكن الوصول إليه من جهاز Windows. هذا لا يثبت توافق بروتوكول الكاميرا أو عمل البث.'));socket.once('timeout',()=>finish(false,'انتهت مهلة الاتصال؛ تحقق من IP والمنفذ والشبكة.'));socket.once('error',()=>finish(false,'تعذر الوصول إلى المنفذ؛ قد يكون مغلقاً أو محجوباً.'));
+  socket.setTimeout(2500);
+  socket.once('connect',()=>finish(true,'المنفذ مفتوح ويمكن الوصول إليه من جهاز Windows. هذا لا يثبت توافق بروتوكول الكاميرا أو عمل البث.'));
+  socket.once('timeout',()=>finish(false,'انتهت مهلة الاتصال؛ تحقق من IP والمنفذ والشبكة.'));
+  socket.once('error',()=>finish(false,'تعذر الوصول إلى المنفذ؛ قد يكون مغلقاً أو محجوباً.'));
   socket.connect(port,host);return;
  }
- if(url.pathname==='/api/ai/status'&&req.method==='GET'){\n  if(!seller)return send(res,403,{error:'seller key required'});\n  return send(res,200,await aiStatus());\n }\n if(url.pathname==='/api/ai/assist'&&req.method==='POST'){
+ if(url.pathname==='/api/ai/status'&&req.method==='GET'){
+  if(!seller)return send(res,403,{error:'seller key required'});
+  return send(res,200,await aiStatus());
+ }
+ if(url.pathname==='/api/ai/assist'&&req.method==='POST'){
   if(!seller)return send(res,403,{error:'seller key required'});
   if(!allowRate('ai:'+String(key)))return send(res,429,{error:'rate_limited',message:'تجاوزت الحد المؤقت للطلبات. حاول بعد دقيقة.'});
   let b;try{b=await read(req)}catch{return send(res,400,{error:'invalid_json_or_too_large'})}

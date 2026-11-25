@@ -148,9 +148,9 @@ if (!xml.includes('HKSomfyNotificationListener')) {
     '                <action android:name="android.service.notification.NotificationListenerService" />',
     '            </intent-filter>',
     '        </service>'
-  ].join('\\n');
+  ].join('\n');
   if (!xml.includes('</application>')) throw new Error('Cannot find Android application closing tag.');
-  xml = xml.replace('</application>', service + '\\n    </application>');
+  xml = xml.replace('</application>', service + '\n    </application>');
 }
 fs.writeFileSync(manifest, xml);
 

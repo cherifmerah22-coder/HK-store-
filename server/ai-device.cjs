@@ -11,7 +11,7 @@ function allowRate(key){
  return true;
 }
 async function aiStatus(){
- const base=(process.env.HK_OLLAMA_URL||'http://127.0.0.1:11434').replace(/\\/+$/,'');
+ const base=(process.env.HK_OLLAMA_URL||'http://127.0.0.1:11434').replace(/\/+$/,'');
  const model=process.env.HK_AI_MODEL||'qwen2.5:3b';
  try{
   const response=await fetch(base+'/api/tags',{signal:AbortSignal.timeout(5000)});
@@ -23,7 +23,7 @@ async function aiStatus(){
 async function aiAssist(body){
  const status=await aiStatus();
  if(!status.ok)return {status:503,data:{error:'LOCAL_AI_NOT_READY',message:status.message,model:status.model}};
- const base=(process.env.HK_OLLAMA_URL||'http://127.0.0.1:11434').replace(/\\/+$/,'');
+ const base=(process.env.HK_OLLAMA_URL||'http://127.0.0.1:11434').replace(/\/+$/,'');
  const model=process.env.HK_AI_MODEL||'qwen2.5:3b';
  const task=['accessory','welcome'].includes(body.task)?body.task:'diagnosis';
  const context=String(body.context||'').slice(0,9000);

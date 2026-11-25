@@ -2,6 +2,7 @@
 const http=require('http');
 const https=require('https');
 const net=require('net');
+const dgram=require('dgram');
 const fs=require('fs');
 const path=require('path');
 const os=require('os');
@@ -43,6 +44,31 @@ const handleRequest=async(req,res)=>{
  const safeEqual=(a,b)=>{const x=Buffer.from(String(a||'')),y=Buffer.from(String(b||''));return x.length===y.length&&crypto.timingSafeEqual(x,y)};
  const seller=safeEqual(key,state.sellerKey);
  const tablet=safeEqual(key,state.tabletKey);
+ if(url.pathname==='/api/camera/discover'&&req.method==='POST'){
+  if(!seller||!localRequest(req))return send(res,403,{error:'manager_local_access_required'});
+  const socket=dgram.createSocket({type:'udp4',reuseAddr:true});
+  const probe='<?xml version="1.0" encoding="UTF-8"?>'+
+   '<e:Envelope xmlns:e="http://www.w3.org/2003/05/soap-envelope" xmlns:w="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:d="http://schemas.xmlsoap.org/ws/2005/04/discovery" xmlns:dn="http://www.onvif.org/ver10/network/wsdl">'+
+   '<e:Header><w:MessageID>uuid:'+crypto.randomUUID()+'</w:MessageID><w:To>urn:schemas-xmlsoap-org:ws:2005:04:discovery</w:To><w:Action>http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe</w:Action></e:Header>'+
+   '<e:Body><d:Probe><d:Types>dn:NetworkVideoTransmitter</d:Types></d:Probe></e:Body></e:Envelope>';
+  const found=new Map();let finished=false;
+  const finish=()=>{if(finished)return;finished=true;try{socket.close()}catch{};return send(res,200,{ok:true,method:'ONVIF WS-Discovery',cameras:[...found.values()],message:found.size?'تم العثور على أجهزة ONVIF على الشبكة.':'لم يُعثر على كاميرات ONVIF؛ قد تكون الكاميرا لا تدعم ONVIF أو أن عزل الشبكة/الجدار الناري يمنع الاكتشاف.'})};
+  socket.on('message',(msg,rinfo)=>{
+   const ip=String(rinfo.address||'');const o=ip.split('.').map(Number);
+   const privateIp=o.length===4&&o.every(n=>Number.isInteger(n)&&n>=0&&n<=255)&&(o[0]===10||(o[0]===192&&o[1]===168)||(o[0]===172&&o[1]>=16&&o[1]<=31));
+   if(!privateIp)return;
+   const xml=msg.toString('utf8');const match=xml.match(/<(?:\w+:)?XAddrs[^>]*>([\s\S]*?)<\/(?:\w+:)?XAddrs>/i);
+   const xaddrs=match?match[1].trim().split(/\s+/):[];
+   const endpoint=(xml.match(/<(?:\w+:)?Address[^>]*>(urn:uuid:[^<]+)</i)||[])[1]||'';
+   const usable=xaddrs.find(v=>/^https?:\/\//i.test(v)&&(()=>{try{const u=new URL(v);return u.hostname===ip||u.hostname==='localhost'||u.hostname==='127.0.0.1'}catch{return false}})());
+   found.set(ip,{name:'كاميرا ONVIF — '+ip,host:ip,model:'ONVIF Network Video Transmitter',protocol:'onvif',port:usable?Number(new URL(usable).port|| (new URL(usable).protocol==='https:'?443:80)):null,xaddr:usable||'',endpoint,place:'الشبكة المحلية',discovered:true});
+  });
+  socket.on('error',()=>finish());
+  socket.bind(0,()=>{
+   try{socket.setBroadcast(true);socket.send(Buffer.from(probe),3702,'239.255.255.250',err=>{if(err)finish()})}catch{finish()}
+  });
+  setTimeout(finish,3500);return;
+ }
  if(url.pathname==='/api/camera/config'&&req.method==='GET'){
   if(!seller||!localRequest(req))return send(res,403,{error:'manager_local_access_required'});
   return send(res,200,{cameras:state.cameraConfigs.map(c=>({id:c.id,name:c.name,model:c.model,place:c.place,host:c.host,port:c.port,protocol:c.protocol,path:c.path,hasCredentials:!!(c.usernameEnc||c.passwordEnc),createdAt:c.createdAt}))});

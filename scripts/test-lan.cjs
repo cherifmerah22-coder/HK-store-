@@ -36,6 +36,13 @@ async function waitForServer(){
   assert.equal(local.status,200);assert.ok(local.data.tabletKey);assert.ok(local.data.sellerKey);
   const {tabletKey,sellerKey}=local.data;
 
+  const cameraDenied=await request('/api/camera/test',{method:'POST',key:tabletKey,body:{host:'192.168.1.50',port:554}});
+  assert.equal(cameraDenied.status,403);
+  const cameraRejectPublic=await request('/api/camera/test',{method:'POST',key:sellerKey,body:{host:'127.0.0.1',port:554}});
+  assert.equal(cameraRejectPublic.status,400);
+  const cameraRejectInvalid=await request('/api/camera/test',{method:'POST',key:sellerKey,body:{host:'192.168.1.999',port:554}});
+  assert.equal(cameraRejectInvalid.status,400);
+
   assert.equal((await request('/api/topup/providers',{key:tabletKey})).status,403);
   const providerCreate=await request('/api/topup/providers',{method:'POST',key:sellerKey,body:{name:'مزود تجريبي',operator:'Mobilis',adapter:'provider_specific',authType:'bearer',baseUrl:'https://api.example.test/v1',merchantId:'HK-DEMO',apiKey:'test-secret',apiSecret:'test-secret-2'}});
   assert.equal(providerCreate.status,201);assert.equal(providerCreate.data.provider.hasApiKey,true);assert.equal(providerCreate.data.provider.hasApiSecret,true);assert.equal(JSON.stringify(providerCreate.data).includes('test-secret'),false);
@@ -69,7 +76,7 @@ async function waitForServer(){
   const ai=await request('/api/ai/assist',{method:'POST',key:sellerKey,body:{task:'diagnosis',context:'اختبار تشخيص تجريبي'}});
   assert.ok([200,502,503].includes(ai.status));
 
-  console.log('HK STORE LAN integration tests passed: health, local credentials, role authorization, top-up config, phone validation, request creation, seller review/confirmation, missing request, invalid key, read-only ADB scan, AI endpoint response.');
+  console.log('HK STORE LAN integration tests passed: health, local credentials, role authorization, top-up config, phone validation, request creation, seller review/confirmation, missing request, invalid key, read-only ADB scan, AI endpoint response, camera endpoint manager-only authorization and private IPv4 validation.');
  }catch(error){
   console.error(error);process.exitCode=1;
  }finally{

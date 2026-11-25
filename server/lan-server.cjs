@@ -99,6 +99,15 @@ const handleRequest=async(req,res)=>{
   state.cameraConfigs.push(camera);state.cameraConfigs=state.cameraConfigs.slice(-100);persist();
   return send(res,201,{ok:true,camera:{id,name,model,place,host,port:port||null,protocol,path:pathValue,hasCredentials:!!(b.username||b.password)},message:'saved_encrypted'});
  }
+ if(url.pathname.startsWith('/api/camera/config/')&&req.method==='PATCH'){
+  if(!seller||!localRequest(req))return send(res,403,{error:'manager_local_access_required'});
+  let b;try{b=await read(req)}catch{return send(res,400,{error:'invalid_json'})}
+  const id=url.pathname.split('/').pop(),camera=state.cameraConfigs.find(c=>c.id===id);if(!camera)return send(res,404,{error:'camera_not_found'});
+  if(typeof b.primary!=='boolean')return send(res,400,{error:'primary_boolean_required'});
+  if(b.primary){for(const c of state.cameraConfigs)c.primary=c.id===id;camera.primary=true}else camera.primary=false;
+  camera.updatedAt=new Date().toISOString();persist();
+  return send(res,200,{ok:true,camera:{id:camera.id,primary:!!camera.primary},message:camera.primary?'تم تعيين الكاميرا ككاميرا أساسية للأحداث.':'تم إلغاء تعيين الكاميرا الأساسية.'});
+ }
  if(url.pathname.startsWith('/api/camera/config/')&&req.method==='DELETE'){
   if(!seller||!localRequest(req))return send(res,403,{error:'manager_local_access_required'});
   const id=url.pathname.split('/').pop(),before=state.cameraConfigs.length;state.cameraConfigs=state.cameraConfigs.filter(c=>c.id!==id);if(before===state.cameraConfigs.length)return send(res,404,{error:'camera_not_found'});persist();return send(res,200,{ok:true});

@@ -32,7 +32,7 @@ const handleRequest=async(req,res)=>{
  if(url.pathname==='/api/health'&&req.method==='GET')return send(res,200,{ok:true,service:'HK STORE LAN Top-up'});
  if(url.pathname==='/api/local-info'&&req.method==='GET'){
   if(!localRequest(req))return send(res,403,{error:'local only'});
-  return send(res,200,{port:8787,addresses:lanAddresses(),tabletKey:state.tabletKey,sellerKey:state.sellerKey});
+  return send(res,200,{port:8787,addresses:lanAddresses(),secure,baseUrl:secure?'https://127.0.0.1:8787':'http://127.0.0.1:8787',tabletKey:state.tabletKey,sellerKey:state.sellerKey});
  }
  const key=req.headers['x-hk-key'];
  const safeEqual=(a,b)=>{const x=Buffer.from(String(a||'')),y=Buffer.from(String(b||''));return x.length===y.length&&crypto.timingSafeEqual(x,y)};

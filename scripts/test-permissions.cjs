@@ -21,6 +21,8 @@ const checks=[
  ['deleteManualCamera',"db.users[current]?.role!=='manager'"],
  ['saveWelcomeCamera',"db.users[current]?.role!=='manager'"],
  ['testWelcomeMessage',"db.users[current]?.role!=='manager'"],
+ ['showCameraWebhookInfo',"db.users[current]?.role!=='manager'"],
+ ['simulateCameraEvent',"db.users[current]?.role!=='manager'"],
  ['addTopupSource',"db.users[current]?.role!=='manager'"],
  ['editTopupSource',"db.users[current]?.role!=='manager'"],
  ['toggleTopupSource',"db.users[current]?.role!=='manager'"],

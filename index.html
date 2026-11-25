@@ -772,4 +772,5 @@ function checkFirmwareCompatibility(){
 renderFirmwareHistory();
 setInterval(()=>{if(db.users[current]?.role==='customer')loadTabletConfig();else if(['manager','seller'].includes(db.users[current]?.role))refreshLanRequests();if(db.users[current]?.role==='manager')pollCameraEvents()},5000);
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
-setInterval(()=>{if(db.users[current]?.role==='manager')pollSomfyNotifications()},4000);\n</script></body></html>
+setInterval(()=>{if(db.users[current]?.role==='manager')pollSomfyNotifications()},4000);
+</script></body></html>

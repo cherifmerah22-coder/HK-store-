@@ -15,6 +15,7 @@ const checks=[
  ['createUser',"db.users[current]?.role!=='manager'"],
  ['addCustomerOrder',"!['manager','seller'].includes(db.users[current]?.role)"],
  ['addRepair',"!['manager','tech'].includes(db.users[current]?.role)"],
+ ['analyzeRepairWithAI',"!['manager','tech'].includes(db.users[current]?.role)"],
  ['setSoftwareStatus',"!['manager','tech'].includes(db.users[current]?.role)"],
  ['addManualCamera',"db.users[current]?.role!=='manager'"],
  ['testManualCamera',"db.users[current]?.role!=='manager'"],

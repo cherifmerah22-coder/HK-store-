@@ -395,13 +395,19 @@ function analyzeSoftwareFault(){
 async function hkAIRequest(task,context){
  const role=db.users[current]?.role;
  if(!['manager','tech','seller'].includes(role))throw Error('هذه الخدمة متاحة للموظفين فقط');
- if(!lanSettings.url||!lanSettings.key)throw Error('تعذر الاتصال بخادم Windows. افتح التطبيق على جهاز البائع/المدير واتصل بخادم HK STORE أولاً.');
+ const nativeAI=window.Capacitor?.Plugins?.HKLocalAI;
+ if(window.Capacitor?.getPlatform?.()==='android'&&nativeAI){
+  const data=await nativeAI.complete({task,context});
+  if(!data?.ok||!data.answer)throw Error(data?.message||'تعذر تشغيل الذكاء الاصطناعي المحلي على هذا الجهاز');
+  return data.answer;
+ }
+ if(!lanSettings.url||!lanSettings.key)throw Error('خادم Windows غير متصل. على Android يلزم إصدار يحتوي على محرك الذكاء الاصطناعي المحلي.');
  const r=await fetch(lanSettings.url+'/api/ai/assist',{method:'POST',headers:{'content-type':'application/json','x-hk-key':lanSettings.key},body:JSON.stringify({task,context})});
  const data=await r.json().catch(()=>({}));
  if(!r.ok)throw Error(data.message||data.error||'فشل طلب الذكاء الاصطناعي');
  return data.answer;
 }
-async function checkHKAIStatus(silent=false){const box=$('hkAIStatus');if(!box)return;if(!lanSettings.url||!lanSettings.key){box.textContent='خادم Windows غير متصل. شغّل HK STORE LAN ثم أعد الفحص.';return}box.textContent='جارٍ فحص محرك الذكاء الاصطناعي المحلي المدمج...';try{const r=await fetch(lanSettings.url+'/api/ai/status',{headers:{'x-hk-key':lanSettings.key}});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.message||d.error||'تعذر فحص الخدمة');box.textContent=d.ok?'🟢 الذكاء الاصطناعي جاهز — النموذج: '+(d.model||'غير محدد'):'🟠 الذكاء الاصطناعي غير جاهز: '+(d.message||'تحقق من تشغيل محرك الذكاء الاصطناعي المدمج على جهاز Windows');if(d.installedModels?.length)box.textContent+=' | النماذج المثبتة: '+d.installedModels.join('، ')}catch(e){box.textContent='تعذر فحص الذكاء الاصطناعي: '+e.message;if(!silent)alert(box.textContent)}}
+async function checkHKAIStatus(silent=false){const box=$('hkAIStatus');if(!box)return;const nativeAI=window.Capacitor?.Plugins?.HKLocalAI;if(window.Capacitor?.getPlatform?.()==='android'&&nativeAI){box.textContent='الذكاء الاصطناعي مدمج داخل التطبيق؛ قد يستغرق تحميل النموذج أول مرة بعض الوقت.';try{const d=await nativeAI.status();box.textContent=d.ok?'🟢 الذكاء الاصطناعي المحلي جاهز — '+(d.model||'Qwen2.5'):(d.message||'النموذج مدمج وسيبدأ تحميله عند أول تحليل');return}catch(e){box.textContent='تعذر فحص المحرك المحلي: '+e.message;if(!silent)alert(box.textContent);return}}if(!lanSettings.url||!lanSettings.key){box.textContent='خادم Windows غير متصل. شغّل HK STORE LAN ثم أعد الفحص.';return}box.textContent='جارٍ فحص محرك الذكاء الاصطناعي المحلي المدمج...';try{const r=await fetch(lanSettings.url+'/api/ai/status',{headers:{'x-hk-key':lanSettings.key}});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.message||d.error||'تعذر فحص الخدمة');box.textContent=d.ok?'🟢 الذكاء الاصطناعي جاهز — النموذج: '+(d.model||'غير محدد'):'🟠 الذكاء الاصطناعي غير جاهز: '+(d.message||'تحقق من تشغيل محرك الذكاء الاصطناعي المدمج على جهاز Windows');if(d.installedModels?.length)box.textContent+=' | النماذج المثبتة: '+d.installedModels.join('، ')}catch(e){box.textContent='تعذر فحص الذكاء الاصطناعي: '+e.message;if(!silent)alert(box.textContent)}}
 
 async function analyzeSoftwareWithAI(){
  const brand=$('swBrand').value,model=$('swModel').value.trim(),fault=$('swFault').value.trim(),tests=$('swTests').value.trim();

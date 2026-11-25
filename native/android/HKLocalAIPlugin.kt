@@ -1,6 +1,11 @@
 package dz.hkstore.app
 
 import android.util.Log
+import android.content.ComponentName
+import android.content.Intent
+import android.provider.Settings
+import android.text.TextUtils
+import org.json.JSONArray
 import com.arm.aichat.AiChat
 import com.arm.aichat.InferenceEngine
 import com.getcapacitor.JSObject
@@ -25,6 +30,35 @@ class HKLocalAIPlugin : Plugin() {
     @Volatile private var engine: InferenceEngine? = null
     @Volatile private var modelReady = false
     @Volatile private var loading = false
+
+    @PluginMethod
+    fun notificationAccessStatus(call: PluginCall) {
+        val enabled = Settings.Secure.getString(
+            context.contentResolver, "enabled_notification_listeners"
+        ) ?: ""
+        val component = ComponentName(context, HKSomfyNotificationListener::class.java)
+        val granted = enabled.split(":").any { it == component.flattenToString() }
+        call.resolve(JSObject().put("granted", granted))
+    }
+
+    @PluginMethod
+    fun openNotificationAccessSettings(call: PluginCall) {
+        try {
+            val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+            call.resolve(JSObject().put("ok", true))
+        } catch (e: Exception) {
+            call.reject(e.message ?: "تعذر فتح إعدادات الوصول إلى الإشعارات.")
+        }
+    }
+
+    @PluginMethod
+    fun readSomfyNotifications(call: PluginCall) {
+        val raw = context.getSharedPreferences("hk_somfy_notifications", 0)
+            .getString("events", "[]") ?: "[]"
+        call.resolve(JSObject().put("events", JSONArray(raw)))
+    }
 
     @PluginMethod
     fun status(call: PluginCall) {

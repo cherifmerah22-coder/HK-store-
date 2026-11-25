@@ -87,7 +87,7 @@ const handleRequest=async(req,res)=>{
  }
  if(url.pathname==='/api/camera/config'&&req.method==='GET'){
   if(!seller||!localRequest(req))return send(res,403,{error:'manager_local_access_required'});
-  return send(res,200,{cameras:state.cameraConfigs.map(c=>({id:c.id,name:c.name,model:c.model,place:c.place,host:c.host,port:c.port,protocol:c.protocol,path:c.path,hasCredentials:!!(c.usernameEnc||c.passwordEnc),createdAt:c.createdAt}))});
+  return send(res,200,{cameras:state.cameraConfigs.map(c=>({id:c.id,name:c.name,model:c.model,place:c.place,host:c.host,port:c.port,protocol:c.protocol,path:c.path,primary:!!c.primary,hasCredentials:!!(c.usernameEnc||c.passwordEnc),createdAt:c.createdAt}))});
  }
  if(url.pathname==='/api/camera/config'&&req.method==='POST'){
   if(!seller||!localRequest(req))return send(res,403,{error:'manager_local_access_required'});

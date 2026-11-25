@@ -83,8 +83,8 @@ const rootGradleFile = path.join(android, 'build.gradle');
 requireFile(rootGradleFile);
 let rootGradle = fs.readFileSync(rootGradleFile, 'utf8');
 if (!rootGradle.includes('kotlin-gradle-plugin')) {
-  if (!/dependencies\\s*\\{/.test(rootGradle)) throw new Error('Cannot find root Gradle dependencies block.');
-  rootGradle = rootGradle.replace(/dependencies\\s*\\{/, "dependencies {\\n        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.0'");
+  if (!/dependencies\s*\{/.test(rootGradle)) throw new Error('Cannot find root Gradle dependencies block.');
+  rootGradle = rootGradle.replace(/dependencies\s*\{/, "dependencies {\n        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.0'");
   fs.writeFileSync(rootGradleFile, rootGradle);
 }
 
@@ -101,7 +101,10 @@ if (!/noCompress\s+['"]gguf['"]/.test(appGradle)) {
 }
 appGradle = appGradle.replace(/minSdkVersion\s+[^\s]+/g, 'minSdkVersion 33');
 appGradle = appGradle.replace(/minSdk\s*=\s*\d+/g, 'minSdk = 33');
-if (!appGradle.includes("apply plugin: 'org.jetbrains.kotlin.android'")) appGradle += "\\napply plugin: 'org.jetbrains.kotlin.android'\\n";\nfs.writeFileSync(appGradleFile, appGradle);
+if (!appGradle.includes("apply plugin: 'org.jetbrains.kotlin.android'")) {
+  appGradle += "\napply plugin: 'org.jetbrains.kotlin.android'\n";
+}
+fs.writeFileSync(appGradleFile, appGradle);
 
 const javaDir = path.join(android, 'app', 'src', 'main', 'java', ...appId.split('.'));
 fs.mkdirSync(javaDir, { recursive: true });

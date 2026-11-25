@@ -15,11 +15,12 @@ try{state=JSON.parse(fs.readFileSync(FILE,'utf8'))}catch{
  state={tabletKey:crypto.randomBytes(24).toString('hex'),sellerKey:crypto.randomBytes(24).toString('hex'),cameraEventToken:crypto.randomBytes(32).toString('hex'),cameraEvents:[],cameraEventSeq:0,config:null,requests:[],providers:[]};
  fs.writeFileSync(FILE,JSON.stringify(state,null,2));
 }
+try{fs.chmodSync(FILE,0o600)}catch{}
 if(!Array.isArray(state.providers))state.providers=[];
 if(!state.cameraEventToken)state.cameraEventToken=crypto.randomBytes(32).toString('hex');
 if(!Array.isArray(state.cameraEvents))state.cameraEvents=[];
 if(!Number.isInteger(state.cameraEventSeq))state.cameraEventSeq=state.cameraEvents.reduce((n,e)=>Math.max(n,Number(e.id)||0),0);
-function persist(){fs.writeFileSync(FILE+'.tmp',JSON.stringify(state,null,2));fs.renameSync(FILE+'.tmp',FILE)}
+function persist(){fs.writeFileSync(FILE+'.tmp',JSON.stringify(state,null,2),{mode:0o600});try{fs.chmodSync(FILE+'.tmp',0o600)}catch{}fs.renameSync(FILE+'.tmp',FILE);try{fs.chmodSync(FILE,0o600)}catch{}}
 const PROVIDER_KEY_FILE=path.join(DATA_DIR,'provider-secrets.key');
 let providerMasterKey;
 try{providerMasterKey=fs.readFileSync(PROVIDER_KEY_FILE)}catch{providerMasterKey=crypto.randomBytes(32);fs.writeFileSync(PROVIDER_KEY_FILE,providerMasterKey,{mode:0o600});try{fs.chmodSync(PROVIDER_KEY_FILE,0o600)}catch{}}
@@ -51,13 +52,13 @@ const handleRequest=async(req,res)=>{
   return send(res,201,{ok:true,eventId:event.id});
  }
  if(url.pathname==='/api/camera/events'&&req.method==='GET'){
-  if(!seller||!localRequest(req))return send(res,403,{error:'manager_local_access_required'});
+  if(!seller||!localRequest(req)||!safeEqual(req.headers['x-hk-camera-token'],state.cameraEventToken))return send(res,403,{error:'manager_local_access_required'});
   const after=Number(url.searchParams.get('after')||0);
   if(!Number.isSafeInteger(after)||after<0)return send(res,400,{error:'invalid_event_cursor'});
   return send(res,200,{events:state.cameraEvents.filter(e=>e.id>after),latestId:state.cameraEventSeq});
  }
  if(url.pathname==='/api/camera/test'&&req.method==='POST'){
-  if(!seller||!localRequest(req))return send(res,403,{error:'manager_local_access_required'});
+  if(!seller||!localRequest(req)||!safeEqual(req.headers['x-hk-camera-token'],state.cameraEventToken))return send(res,403,{error:'manager_local_access_required'});
   let b;try{b=await read(req)}catch{return send(res,400,{error:'invalid_json'})}
   const host=String(b.host||'').trim(),port=Number(b.port||554);
   const oct=host.split('.').map(Number);

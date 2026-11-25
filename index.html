@@ -84,7 +84,7 @@ img,svg,video,canvas{max-width:100%;height:auto}
 <body>
 <div id="loginView" class="login panel">
  <div class="logo">HK</div><h2>HK STORE</h2><p class="muted">نظام تسيير المحل</p>
- <div class="field"><label>المستخدم</label><select id="loginUser"><option value="manager">المدير</option><option value="seller">البائع</option><option value="tech">التقني</option></select></div>
+ <div class="field"><label for="loginUsername">اسم المستخدم</label><input id="loginUsername" type="text" autocomplete="username" value="manager" placeholder="manager أو admin" autocapitalize="none" spellcheck="false"></div><p class="muted" style="font-size:12px;margin:6px 0 0">اسم حساب المدير الافتراضي: manager (ويمكن كتابة admin أيضاً).</p>
  <div class="field" style="margin-top:12px"><label>كلمة المرور</label><input id="loginPin" type="password" autocomplete="current-password" placeholder="أدخل كلمة المرور"></div>
  <button style="width:100%;margin-top:16px" onclick="login()">دخول</button><p id="loginError" class="muted"></p>
  <div class="panel" style="margin-top:14px;padding:12px"><b>اتصال لوح الزبون</b><div class="field" style="margin-top:8px"><label>عنوان جهاز البائع</label><input id="lanUrl" placeholder="http://192.168.1.5:8787"></div><div class="field" style="margin-top:8px"><label>رمز ربط اللوح</label><input id="lanKey" type="password"></div><button class="secondary small" style="margin-top:8px" onclick="saveLanSettings()">حفظ الاتصال</button></div><div class="notice" style="margin-top:15px">لأول دخول استخدم حساب المدير الذي تم إعداده. المدير وحده ينشئ حسابات العمال ويحدد هوياتهم وصلاحياتهم. تحفظ البيانات محلياً على هذا الجهاز في هذه النسخة.</div>
@@ -222,9 +222,38 @@ async function derivePassword(password,saltHex,iterations=PASSWORD_ITERATIONS){i
 async function setUserPassword(user,password){const salt=crypto.getRandomValues(new Uint8Array(16)),saltHex=bytesToHex(salt);user.passwordSalt=saltHex;user.passwordIterations=PASSWORD_ITERATIONS;user.passwordHash=await derivePassword(password,saltHex,PASSWORD_ITERATIONS);delete user.pin}
 async function verifyPassword(password,user){if(!user||!user.passwordHash||!user.passwordSalt)return false;const actual=await derivePassword(password,user.passwordSalt,Number(user.passwordIterations)||PASSWORD_ITERATIONS),expected=String(user.passwordHash).toLowerCase();if(actual.length!==expected.length)return false;let diff=0;for(let i=0;i<actual.length;i++)diff|=actual.charCodeAt(i)^expected.charCodeAt(i);return diff===0}
 function save(){localStorage.setItem('hkstore_db',JSON.stringify(db));render()}
-function refreshLoginUsers(){let sel=$('loginUser'),old=sel.value;sel.innerHTML=Object.entries(db.users).map(([k,u])=>'<option value="'+esc(k)+'">'+esc(u.name||k)+' — '+(u.role==='manager'?'مدير':u.role==='tech'?'تقني':u.role==='customer'?'زبون اللوح':'بائع')+'</option>').join('');if(db.users[old])sel.value=old}
+function resolveLoginUsername(value){const v=String(value||'').trim().toLowerCase();return v==='admin'||v==='المدير'?'manager':v}
+function refreshLoginUsers(){const sel=$('loginUser');if(!sel)return;const old=sel.value;sel.innerHTML=Object.entries(db.users).map(([k,u])=>'<option value="'+esc(k)+'">'+esc(u.name||k)+' — '+(u.role==='manager'?'مدير':u.role==='tech'?'تقني':u.role==='customer'?'زبون اللوح':'بائع')+'</option>').join('');if(db.users[old])sel.value=old}
 function saveLanSettings(){let url=$('lanUrl').value.trim(),key=$('lanKey').value.trim();if(url.endsWith('/'))url=url.slice(0,-1);let parsed;try{parsed=new URL(url)}catch{return alert('أدخل عنوان اتصال صحيحاً يبدأ بـ https://')}if(parsed.protocol!=='https:')return alert('الاتصال بين الأجهزة يتطلب HTTPS وشهادة موثوقة. HTTP غير مسموح عبر الشبكة.');if(!key)return alert('أدخل رمز ربط اللوح');lanSettings={url,key};localStorage.setItem('hkstore_lan',JSON.stringify(lanSettings));alert('تم حفظ اتصال HTTPS الآمن')}
-async function login(){const username=$('loginUser').value,p=$('loginPin').value,u=db.users[username];$('loginError').textContent='';if(!u||!p){$('loginError').textContent='أدخل اسم المستخدم وكلمة المرور.';return}try{let valid=false;if(u.passwordHash&&u.passwordSalt)valid=await verifyPassword(p,u);else if(Object.prototype.hasOwnProperty.call(u,'pin')&&String(u.pin)===p){valid=true;await setUserPassword(u,p);if(username==='manager'&&p==='1234')u.mustChangePassword=true;save()}if(!valid){$('loginError').textContent='اسم المستخدم أو كلمة المرور غير صحيحة.';return}if(u.mustChangePassword){const next=prompt('لأمان المحل، غيّر كلمة المرور الافتراضية الآن. أدخل كلمة مرور جديدة من 8 أحرف على الأقل:');if(!next||next.length<8){$('loginError').textContent='يجب تغيير كلمة المرور قبل الدخول. أعد المحاولة واختر 8 أحرف على الأقل.';return}const confirmNext=prompt('أعد إدخال كلمة المرور الجديدة للتأكيد:');if(next!==confirmNext){$('loginError').textContent='كلمتا المرور غير متطابقتين. أعد المحاولة.';return}await setUserPassword(u,next);u.mustChangePassword=false;save()}current=username;restoreSaleCart();$('loginView').classList.add('hidden');$('app').classList.remove('hidden');$('who').textContent=u.name;applyPermissions();render();if(u.role==='manager')loadWelcomeCamera();if(u.role==='manager')loadPrintSettings();if(u.role==='customer'){showPage('topup');loadTabletConfig()}else if(['manager','seller'].includes(u.role))connectSellerLan();else if(u.role==='tech')connectSellerLan(true)}catch(err){$('loginError').textContent='تعذر تشغيل التحقق الآمن على هذا الجهاز. حدّث التطبيق أو استخدم جهازاً يدعم Web Crypto.';console.error(err)}}
+async function login(){
+ const username=resolveLoginUsername($('loginUsername').value),p=$('loginPin').value,u=db.users[username];
+ $('loginError').textContent='';
+ if(!username||!u||!p){$('loginError').textContent='تحقق من اسم المستخدم وكلمة المرور.';return}
+ try{
+  let valid=false;
+  if(u.passwordHash&&u.passwordSalt)valid=await verifyPassword(p,u);
+  else if(Object.prototype.hasOwnProperty.call(u,'pin')&&String(u.pin)===p){
+   valid=true;await setUserPassword(u,p);
+   if(username==='manager'&&p==='1234')u.mustChangePassword=true;
+   save();
+  }
+  if(!valid){$('loginError').textContent='اسم المستخدم أو كلمة المرور غير صحيح. تحقق من الحساب المحدد وكلمة المرور.';return}
+  if(u.mustChangePassword){
+   const next=prompt('هذه أول مرة تدخل فيها بحساب المدير. أنشئ كلمة مرور جديدة من 8 أحرف على الأقل:');
+   if(next===null){$('loginError').textContent='تم إلغاء تغيير كلمة المرور. أعد الدخول واكمل إنشاء كلمة مرور جديدة.';return}
+   if(String(next).length<8){$('loginError').textContent='كلمة المرور الجديدة قصيرة. يجب أن تتكون من 8 أحرف على الأقل. كلمة المرور الحالية لم تتغير.';return}
+   const confirmNext=prompt('أعد كتابة كلمة المرور الجديدة للتأكيد:');
+   if(next!==confirmNext){$('loginError').textContent='كلمتا المرور غير متطابقتين. أعد المحاولة.';return}
+   await setUserPassword(u,String(next));u.mustChangePassword=false;save();
+  }
+  current=username;restoreSaleCart();$('loginView').classList.add('hidden');$('app').classList.remove('hidden');$('who').textContent=u.name;applyPermissions();render();
+  if(u.role==='manager')loadWelcomeCamera();
+  if(u.role==='manager')loadPrintSettings();
+  if(u.role==='customer'){showPage('topup');loadTabletConfig()}
+  else if(['manager','seller'].includes(u.role))connectSellerLan();
+  else if(u.role==='tech')connectSellerLan(true);
+ }catch(err){$('loginError').textContent='تعذر التحقق من كلمة المرور على هذا الجهاز. حدّث التطبيق ثم أعد المحاولة.';console.error(err)}
+}
 function loadWelcomeCamera(){renderManualCameras();const c=db.welcomeCamera||{};$('welcomeCamName').value=c.name||'Somfy Indoor';$('welcomeCamPlace').value=c.place||'';$('welcomeCamModel').value='Somfy Indoor';$('welcomeCamEnabled').value=c.enabled===false?'off':'on';$('welcomeVolume').value=String(c.volume??0.8);$('welcomeRate').value=String(c.rate??1);$('welcomePhrases').value=(Array.isArray(c.phrases)&&c.phrases.length?c.phrases:['مرحبا بيك خويا، نورت HK STORE، واش نقدروا نعاونك؟','أهلا وسهلا بيك، نورتنا، تفضل وخذ راحتك.']).join('\n');$('welcomeCameraStatus').textContent=c.savedAt?'إعداد الكاميرا محفوظ: '+new Date(c.savedAt).toLocaleString('ar-DZ')+' — الربط التلقائي بأحداث Somfy غير مفعّل بعد.':'لم يتم حفظ إعداد الكاميرا بعد.'}
 function saveWelcomeCamera(){if(db.users[current]?.role!=='manager')return alert('إعداد الكاميرا متاح للمدير فقط');const phrases=$('welcomePhrases').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);if(!phrases.length)return alert('أضف رسالة ترحيبية واحدة على الأقل');db.welcomeCamera={provider:'Somfy',model:'Somfy Indoor',name:$('welcomeCamName').value.trim()||'Somfy Indoor',place:$('welcomeCamPlace').value.trim(),enabled:$('welcomeCamEnabled').value==='on',volume:Math.max(0,Math.min(1,Number($('welcomeVolume').value)||0)),rate:Number($('welcomeRate').value)||1,phrases,savedAt:new Date().toISOString(),integration:'pending-official-event-source'};save();$('welcomeCameraStatus').textContent='تم حفظ إعداد Somfy Indoor ورسائل الترحيب على هذا الجهاز. الكشف التلقائي لم يُربط بعد.';alert('تم حفظ إعداد الكاميرا ورسائل الترحيب')}
 function renderManualCameras(){const box=$('manualCameraTable');if(!box)return;const cams=Array.isArray(db.cameras)?db.cameras:[];box.innerHTML=table(['الاسم','الموديل','المكان','العنوان','البروتوكول','حالة الربط','إجراء'],cams.map(c=>'<tr><td>'+esc(c.name)+'</td><td>'+esc(c.model||'-')+'</td><td>'+esc(c.place||'-')+'</td><td>'+esc(c.host)+(c.port?':'+c.port:'')+'</td><td>'+esc(({unknown:'غير معروف',rtsp:'RTSP',onvif:'ONVIF',http:'HTTP/HTTPS',vendor:'خدمة الشركة'})[c.protocol]||c.protocol)+'</td><td>مسجلة — غير مختبرة</td><td><button class="danger small" onclick="deleteManualCamera('+Number(c.id)+')">حذف</button></td></tr>'))}

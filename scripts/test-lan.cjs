@@ -41,7 +41,7 @@ async function waitForServer(){
   assert.equal(cameraDenied.status,403);
   const cameraRejectPublic=await request('/api/camera/test',{method:'POST',key:sellerKey,cameraToken:cameraEventToken,body:{host:'127.0.0.1',port:554}});
   assert.equal(cameraRejectPublic.status,400);
-  const cameraRejectInvalid=await request('/api/camera/test',{method:'POST',key:sellerKey,cameraToken,body:{host:'192.168.1.999',port:554}});
+  const cameraRejectInvalid=await request('/api/camera/test',{method:'POST',key:sellerKey,cameraToken:cameraEventToken,body:{host:'192.168.1.999',port:554}});
   assert.equal(cameraRejectInvalid.status,400);
   assert.equal((await request('/api/camera/event',{method:'POST',body:{event:'motion'}})).status,403);
   const cameraEvent=await request('/api/camera/event',{method:'POST',cameraToken:cameraEventToken,body:{event:'motion',camera:'Somfy VISIDOM ICM100',test:true}});

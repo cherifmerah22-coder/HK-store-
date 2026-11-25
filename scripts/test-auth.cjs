@@ -9,7 +9,7 @@ assert.ok(match,'inline app script exists');
 const helpers=match[1].match(/const PASSWORD_ITERATIONS[\s\S]*?(?=function save\()/);
 assert.ok(helpers,'password helper block exists');
 assert.match(html,/<input id="loginUsername"[^>]*value="manager"/,'login screen exposes an editable username field');
-assert.match(helpers[0],/function resolveLoginUsername\(value\)/,'username resolver exists');
+assert.match(match[1],/function resolveLoginUsername\(value\)/,'username resolver exists');
 assert.match(match[1],/resolveLoginUsername\(\$\('loginUsername'\)\.value\)/,'login uses the editable username field');
 const context={crypto:webcrypto,TextEncoder,Uint8Array,Array,String,Number,Error};
 vm.runInNewContext(helpers[0],context,{filename:'password-helpers'});

@@ -20,7 +20,11 @@ const checks=[
  ['testManualCamera',"db.users[current]?.role!=='manager'"],
  ['deleteManualCamera',"db.users[current]?.role!=='manager'"],
  ['saveWelcomeCamera',"db.users[current]?.role!=='manager'"],
- ['testWelcomeMessage',"db.users[current]?.role!=='manager'"]
+ ['testWelcomeMessage',"db.users[current]?.role!=='manager'"],
+ ['addTopupSource',"db.users[current]?.role!=='manager'"],
+ ['editTopupSource',"db.users[current]?.role!=='manager'"],
+ ['toggleTopupSource',"db.users[current]?.role!=='manager'"],
+ ['deleteTopupSource',"db.users[current]?.role!=='manager'"]
 ];
 function body(name){
  const re=new RegExp('function\\s+'+name+'\\s*\\(');

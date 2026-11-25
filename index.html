@@ -703,12 +703,12 @@ async function scheduleNativePrayerNotifications(){
  try{
   const permission=await plugin.checkPermissions();
   if(permission.display!=='granted'){const asked=await plugin.requestPermissions();if(asked.display!=='granted')return false}
-  try{await plugin.createChannel({id:'hk-adhan',name:'تنبيهات الأذان',description:'تنبيه عند دخول وقت الصلاة',importance:5,sound:'default',visibility:1})}catch{}
+  try{await plugin.createChannel({id:'hk-adhan',name:'تنبيهات الأذان',description:'تنبيه عند دخول وقت الصلاة',importance:5,visibility:1})}catch{}
   const now=new Date(),items=[];
   for(const [index,[key,name]] of Object.entries(PRAYER_NAMES).entries()){
    const [hh,mm]=prayerTimeValue(prayerData.timings[key]).split(':').map(Number);
    const at=new Date(now);at.setHours(hh,mm,0,0);if(at<=now)at.setDate(at.getDate()+1);
-   items.push({id:6101+index,title:'حان الآن وقت صلاة '+name,body:'حيّ على الصلاة • مواقيت الحاسي تمهريت',channelId:'hk-adhan',schedule:{at,allowWhileIdle:true,repeats:true,every:'day'},smallIcon:'ic_launcher'});
+   items.push({id:6101+index,title:'حان الآن وقت صلاة '+name,body:'حيّ على الصلاة • مواقيت الحاسي تمهريت',channelId:'hk-adhan',schedule:{at,allowWhileIdle:true,repeats:true,every:'day'}});
   }
   try{await plugin.cancel({notifications:items.map(x=>({id:x.id}))})}catch{}
   await plugin.schedule({notifications:items});return true;

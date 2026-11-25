@@ -449,7 +449,7 @@ async function salesAccessoryAI(){
  const model=$('salesAccessoryModel').value.trim(),chosen=$('salesAccessoryType').value;
  if(!model)return alert('أدخل موديل الهاتف الدقيق');
  const out=$('salesAccessoryAIResults'),results=$('salesAccessoryMatches');
- out.textContent='جارٍ التحقق من توافق الإكسسوارات ومخزونها...';results.innerHTML='';
+ out.textContent='جارٍ فحص التوافق والمخزون والبحث عن بدائل محتملة...';results.innerHTML='';
  const excluded=['هاتف / جهاز','قطعة غيار','غير محدد'];
  const allAccessoryCategories=[...new Set(db.products.map(p=>String(p.category||'إكسسوار آخر').trim()).filter(c=>c&&!excluded.includes(c)))];
  const categoryGroups={
@@ -462,32 +462,42 @@ async function salesAccessoryAI(){
  const categoryMatches=(category)=>{
   if(chosen==='all')return true;
   const c=normalizeAccessoryModel(category);
-  const keys=categoryGroups[chosen]||[];
-  return keys.some(k=>c.includes(normalizeAccessoryModel(k)));
+  return (categoryGroups[chosen]||[]).some(k=>c.includes(normalizeAccessoryModel(k)));
  };
  const categories=allAccessoryCategories.filter(categoryMatches);
  const groups=categories.map(type=>{
-  const exact=db.products.filter(p=>String(p.category||'إكسسوار آخر').trim()===type&&productSupportsModel(p,model));
+  const inCategory=db.products.filter(p=>String(p.category||'إكسسوار آخر').trim()===type);
+  const exact=inCategory.filter(p=>productSupportsModel(p,model));
   const checked=exact.map(p=>({p,check:accessorySpecCheck(p,type)}));
-  return {type,exact,available:checked.filter(x=>x.check.ok&&Number(x.p.qty)>0),unavailable:checked.filter(x=>x.check.ok&&Number(x.p.qty)<=0),incomplete:checked.filter(x=>!x.check.ok)};
+  const available=checked.filter(x=>x.check.ok&&Number(x.p.qty)>0);
+  const unavailable=checked.filter(x=>x.check.ok&&Number(x.p.qty)<=0);
+  const incomplete=checked.filter(x=>!x.check.ok);
+  // Different-model stock is only a possible substitute, never confirmed compatible.
+  const alternatives=!available.length?inCategory.filter(p=>!productSupportsModel(p,model)&&Number(p.qty)>0):[];
+  return {type,exact,available,unavailable,incomplete,alternatives};
  });
  let html='';
  for(const g of groups){
-  if(!g.exact.length)continue;
+  if(!g.exact.length&&!g.alternatives.length)continue;
   html+='<div class="panel" style="margin-top:8px"><h4>'+esc(g.type)+'</h4>';
   if(g.available.length)html+=table(['الصورة','المنتج','تأكيد التوافق','المخزون','السعر','إجراء'],g.available.map(({p,check})=>'<tr><td>'+(p.imageUrl?'<img src="'+esc(p.imageUrl)+'" alt="" loading="lazy" style="width:42px;height:42px;object-fit:contain">':'—')+'</td><td>'+esc(p.name)+'</td><td>'+esc(p.productCompatibilityNotes||check.reason)+'</td><td>'+Number(p.qty)+'</td><td>'+money(p.sell)+'</td><td><button class="small" onclick="selectAccessoryForSale('+Number(p.id)+')">＋ أضف للسلة</button></td></tr>'));
-  else html+='<p class="muted">لا توجد منتجات مطابقة ومتوفرة في هذه الفئة.</p>';
-  if(g.unavailable.length)html+='<p class="muted">مطابق لكن نفد المخزون: '+g.unavailable.map(x=>esc(x.p.name)).join('، ')+'</p>';
-  if(g.incomplete.length)html+='<p class="muted">لم تعرض لعدم اكتمال التحقق: '+g.incomplete.map(x=>esc(x.p.name)+' ('+esc(x.check.reason)+')').join('، ')+'</p>';
+  if(g.unavailable.length)html+='<p class="muted">متوافق حسب السجل لكن نفد المخزون: '+g.unavailable.map(x=>esc(x.p.name)).join('، ')+'</p>';
+  if(g.incomplete.length)html+='<p class="muted">توافقه غير مكتمل ولا يُعرض للبيع كمنتج متوافق: '+g.incomplete.map(x=>esc(x.p.name)).join('، ')+'</p>';
+  if(g.alternatives.length){
+   html+='<div class="notice" style="margin-top:8px"><strong>بدائل محتملة من مخزون أجهزة أخرى — غير مؤكدة التوافق</strong><p>يمكن للبائع فحصها عملياً قبل البيع. لا تضفها للفاتورة على أنها متوافقة قبل التأكد وتسجيل موديل هذا الهاتف في خانة «موديلات متوافقة» بواسطة المدير.</p>';
+   html+=table(['المنتج المرشح','الموديلات المسجلة عليه','المخزون','السعر','حالة الاستخدام'],g.alternatives.map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+esc(p.compatibleModels||'غير مسجلة')+'</td><td>'+Number(p.qty)+'</td><td>'+money(p.sell)+'</td><td><span class="muted">فحص يدوي مطلوب — لا تضف للسلة بعد</span></td></tr>'));
+   html+='</div>';
+  }
   html+='</div>';
  }
- results.innerHTML=html||'<p class="muted">لم نعثر على إكسسوارات مسجلة لهذا الموديل. أضف موديلات التوافق من حساب المدير في بطاقة المنتج.</p>';
+ results.innerHTML=html||'<p class="muted">لا توجد منتجات مناسبة في المخزون. سجّل المنتجات وموديلات التوافق من حساب المدير.</p>';
  const eligible=groups.flatMap(g=>g.available.map(x=>({category:g.type,name:x.p.name,qty:x.p.qty,price:x.p.sell,verification:x.p.productCompatibilityNotes||'موديل مطابق مسجل'})));
- out.textContent=eligible.length?'اكتمل الفحص: '+eligible.length+' إكسسوار متوافق ومتوفر.':'لا توجد إكسسوارات مؤكدة التوافق ومتوفرة حالياً. تحقق من رقم الطراز وبيانات التوافق.';
+ const potential=groups.flatMap(g=>g.alternatives.map(p=>({category:g.type,name:p.name,registeredModels:p.compatibleModels||'',qty:p.qty,price:p.sell,status:'غير مؤكد؛ يتطلب فحصاً عملياً قبل البيع'})));
+ out.textContent='تم فحص '+eligible.length+' منتج مؤكد التوافق. '+potential.length+' بديل محتمل يحتاج إلى فحص يدوي وتأكيد المدير قبل اعتباره متوافقاً.';
  try{
-  const note=await hkAIRequest('accessory','مهمة مساعد بيع HK STORE. موديل الهاتف الدقيق: '+model+'\\nاعرض توصيات مكملة من كل فئات الإكسسوارات المناسبة. هذه القائمة فقط اجتازت المطابقة الدقيقة للموديل وفحص المخزون: '+JSON.stringify(eligible)+'\\nاذكر اسم المنتج وسعره وكميته وفئته كما وردت فقط. لا تخترع توافقاً أو منتجاً أو سعراً ولا تضف أي بديل غير موجود في القائمة. إذا كانت القائمة فارغة فقل ذلك بوضوح.');
+  const note=await hkAIRequest('accessory','أنت مساعد مبيعات HK STORE. موديل الهاتف المطلوب: '+model+'\\nالمنتجات المؤكدة التوافق والمتوفرة (يمكن اقتراحها للبيع): '+JSON.stringify(eligible)+'\\nبدائل محتملة من مخزون موديلات أخرى (ليست متوافقة بشكل مؤكد): '+JSON.stringify(potential)+'\\nاقترح المنتجات المؤكدة أولاً. إذا لم يتوفر المنتج المطلوب، ساعد البائع في تقييم البدائل المحتملة واذكر بوضوح أنها غير مؤكدة وتحتاج فحصاً عملياً. لواقيات الشاشة والعدسات والأغطية: يجب فحص الأبعاد والحواف ومواقع الكاميرا والأزرار والفتحات والبصمة. للشواحن والكابلات: افحص نوع المنفذ والجهد/القدرة وبروتوكول الشحن. للسماعات: افحص نوع الاتصال والمنفذ. لا تدّعِ التوافق ولا تسمح بالبيع كمتوافق قبل الفحص وتسجيل موديل الهاتف ضمن موديلات المنتج. لا تخترع بيانات أو منتجات أو أسعاراً أو مخزوناً.');
   out.textContent+='\\n\\nمساعد البيع HK AI: '+note;
- }catch(e){out.textContent+='\\n\\nتم التحقق محلياً؛ تعذر تشغيل النموذج الذكي حالياً: '+e.message;}
+ }catch(e){out.textContent+='\\n\\nتم الفحص المحلي؛ تعذر تشغيل النموذج الذكي حالياً: '+e.message;}
 }
 let hkDetectedDevices=[];
 function applyDetectedFirmwareDevice(){

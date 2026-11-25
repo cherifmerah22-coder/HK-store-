@@ -5,7 +5,7 @@ const fs=require('fs');
 const path=require('path');
 const os=require('os');
 const crypto=require('crypto');
-const {aiAssist,scanAndroidDevices,allowRate}=require('./ai-device.cjs');
+const {aiAssist,aiStatus,scanAndroidDevices,allowRate}=require('./ai-device.cjs');
 const DATA_DIR=process.env.HKSTORE_DATA_DIR||path.join(os.homedir(),'HK-STORE-data');
 const FILE=path.join(DATA_DIR,'topup-lan.json');
 fs.mkdirSync(DATA_DIR,{recursive:true});
@@ -37,7 +37,7 @@ const handleRequest=async(req,res)=>{
  const safeEqual=(a,b)=>{const x=Buffer.from(String(a||'')),y=Buffer.from(String(b||''));return x.length===y.length&&crypto.timingSafeEqual(x,y)};
  const seller=safeEqual(key,state.sellerKey);
  const tablet=safeEqual(key,state.tabletKey);
- if(url.pathname==='/api/ai/assist'&&req.method==='POST'){
+ if(url.pathname==='/api/ai/status'&&req.method==='GET'){\n  if(!seller)return send(res,403,{error:'seller key required'});\n  return send(res,200,await aiStatus());\n }\n if(url.pathname==='/api/ai/assist'&&req.method==='POST'){
   if(!seller)return send(res,403,{error:'seller key required'});
   if(!allowRate('ai:'+String(key)))return send(res,429,{error:'rate_limited',message:'تجاوزت الحد المؤقت للطلبات. حاول بعد دقيقة.'});
   let b;try{b=await read(req)}catch{return send(res,400,{error:'invalid_json_or_too_large'})}

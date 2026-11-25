@@ -33,6 +33,19 @@ X-HK-Camera-Token: <manager camera event token>
 
 For a bridge running on the Windows shop computer without TLS, use `http://127.0.0.1:8787/api/camera/event`. The default server is loopback-only. For a bridge on another device, configure a trusted TLS certificate; the server then listens on the LAN interface. Keep the token secret and never put it in a public page or screenshot.
 
+## Android Somfy notification capture
+
+The Android build also includes a native notification-listener service for the case where **HK STORE and Somfy VISIDOM are installed on the same Android phone**.
+
+- The manager explicitly opens Android's Notification Access settings and enables HK STORE.
+- The native service filters notifications by the source app's visible label/package containing "Somfy" or "VISIDOM"; it stores only matching notification title/text and timestamp locally (a rolling buffer of up to 40 items).
+- HK STORE reads those locally stored Somfy notifications while the manager is using the app. A newly received notification can trigger the existing welcome flow and local AI can generate a short greeting from the notification text.
+- HK STORE does not read or store notifications from unrelated apps.
+- If the app is closed or Android stops its UI process, the native listener can retain the event locally, but greeting playback occurs only when the HK STORE UI is running and polling again. It is not a guaranteed background alarm.
+- This is text-based event handling. It does not retrieve camera images, identify people, or prove what appears in the video. The ICM100 video stream remains a separate integration problem.
+
+The Android permission is sensitive because Android grants notification-listener access at device level. The service applies a local Somfy-only filter; the manager should enable it only after reviewing the Android permission screen.
+
 ## Remaining physical integration step
 
 The ICM100 manual does not show a direct webhook output. To make automatic greetings real, a separate trusted bridge must receive the camera's Somfy VISIDOM motion notification (for example, via a supported email-notification workflow) and forward only a verified motion event to the HK STORE endpoint above. That bridge is not bundled or claimed as complete because the camera's notification mailbox/provider and a supported event extraction method have not yet been configured or tested.

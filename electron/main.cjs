@@ -12,7 +12,7 @@ function aiAsset(...parts){
 function startBundledAI(){
  if(process.platform!=='win32')return false;
  const executable=aiAsset('bin','llama-server.exe');
- const model=aiAsset('models','Qwen2.5-3B-Instruct-Q4_K_M.gguf');
+ const model=aiAsset('models','Qwen2.5-1.5B-Instruct-Q4_K_M.gguf');
  if(!fs.existsSync(executable)||!fs.existsSync(model)){
   console.error('Bundled AI assets are missing; AI remains unavailable without external installation.');
   return false;

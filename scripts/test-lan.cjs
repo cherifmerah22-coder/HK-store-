@@ -39,16 +39,16 @@ async function waitForServer(){
 
   const cameraDenied=await request('/api/camera/test',{method:'POST',key:tabletKey,body:{host:'192.168.1.50',port:554}});
   assert.equal(cameraDenied.status,403);
-  const cameraRejectPublic=await request('/api/camera/test',{method:'POST',key:sellerKey,body:{host:'127.0.0.1',port:554}});
+  const cameraRejectPublic=await request('/api/camera/test',{method:'POST',key:sellerKey,cameraToken,body:{host:'127.0.0.1',port:554}});
   assert.equal(cameraRejectPublic.status,400);
-  const cameraRejectInvalid=await request('/api/camera/test',{method:'POST',key:sellerKey,body:{host:'192.168.1.999',port:554}});
+  const cameraRejectInvalid=await request('/api/camera/test',{method:'POST',key:sellerKey,cameraToken,body:{host:'192.168.1.999',port:554}});
   assert.equal(cameraRejectInvalid.status,400);
   assert.equal((await request('/api/camera/event',{method:'POST',body:{event:'motion'}})).status,403);
   const cameraEvent=await request('/api/camera/event',{method:'POST',cameraToken:cameraEventToken,body:{event:'motion',camera:'Somfy VISIDOM ICM100',test:true}});
   assert.equal(cameraEvent.status,201);assert.ok(cameraEvent.data.eventId);
-  const cameraEvents=await request('/api/camera/events?after=0',{key:sellerKey});
+  const cameraEvents=await request('/api/camera/events?after=0',{key:sellerKey,cameraToken});
   assert.equal(cameraEvents.status,200);assert.equal(cameraEvents.data.events.length,1);assert.equal(cameraEvents.data.events[0].test,true);
-  assert.equal((await request('/api/camera/events?after=0',{key:tabletKey})).status,403);
+  assert.equal((await request('/api/camera/events?after=0',{key:tabletKey,cameraToken})).status,403);
   const cameraPreflight=await fetch(base+'/api/camera/event',{method:'OPTIONS',headers:{'access-control-request-headers':'content-type,x-hk-camera-token'}});
   assert.match(cameraPreflight.headers.get('access-control-allow-headers')||'',/x-hk-camera-token/);
 

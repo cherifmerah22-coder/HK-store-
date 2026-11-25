@@ -12,8 +12,8 @@ const child=spawn(process.execPath,[path.join(root,'server','lan-server.cjs')],{
 });
 const base='http://127.0.0.1:8787';
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-async function request(route,{method='GET',key,body}={}){
- const headers={};if(key)headers['x-hk-key']=key;if(body!==undefined)headers['content-type']='application/json';
+async function request(route,{method='GET',key,cameraToken,body}={}){
+ const headers={};if(key)headers['x-hk-key']=key;if(cameraToken)headers['x-hk-camera-token']=cameraToken;if(body!==undefined)headers['content-type']='application/json';
  const response=await fetch(base+route,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});
  let data={};try{data=await response.json()}catch{}
  return {status:response.status,data};
@@ -34,7 +34,8 @@ async function waitForServer(){
 
   const local=await request('/api/local-info');
   assert.equal(local.status,200);assert.ok(local.data.tabletKey);assert.ok(local.data.sellerKey);
-  const {tabletKey,sellerKey}=local.data;
+  const {tabletKey,sellerKey,cameraEventToken}=local.data;
+  assert.equal(local.data.secure,false);assert.ok(cameraEventToken);
 
   const cameraDenied=await request('/api/camera/test',{method:'POST',key:tabletKey,body:{host:'192.168.1.50',port:554}});
   assert.equal(cameraDenied.status,403);
@@ -42,6 +43,14 @@ async function waitForServer(){
   assert.equal(cameraRejectPublic.status,400);
   const cameraRejectInvalid=await request('/api/camera/test',{method:'POST',key:sellerKey,body:{host:'192.168.1.999',port:554}});
   assert.equal(cameraRejectInvalid.status,400);
+  assert.equal((await request('/api/camera/event',{method:'POST',body:{event:'motion'}})).status,403);
+  const cameraEvent=await request('/api/camera/event',{method:'POST',cameraToken:cameraEventToken,body:{event:'motion',camera:'Somfy VISIDOM ICM100',test:true}});
+  assert.equal(cameraEvent.status,201);assert.ok(cameraEvent.data.eventId);
+  const cameraEvents=await request('/api/camera/events?after=0',{key:sellerKey});
+  assert.equal(cameraEvents.status,200);assert.equal(cameraEvents.data.events.length,1);assert.equal(cameraEvents.data.events[0].test,true);
+  assert.equal((await request('/api/camera/events?after=0',{key:tabletKey})).status,403);
+  const cameraPreflight=await fetch(base+'/api/camera/event',{method:'OPTIONS',headers:{'access-control-request-headers':'content-type,x-hk-camera-token'}});
+  assert.match(cameraPreflight.headers.get('access-control-allow-headers')||'',/x-hk-camera-token/);
 
   assert.equal((await request('/api/topup/providers',{key:tabletKey})).status,403);
   const providerCreate=await request('/api/topup/providers',{method:'POST',key:sellerKey,body:{name:'مزود تجريبي',operator:'Mobilis',adapter:'provider_specific',authType:'bearer',baseUrl:'https://api.example.test/v1',merchantId:'HK-DEMO',apiKey:'test-secret',apiSecret:'test-secret-2'}});
@@ -73,6 +82,7 @@ async function waitForServer(){
 
   const scan=await request('/api/device/scan',{key:sellerKey});
   assert.equal(scan.status,200);assert.equal(scan.data.ok,true);assert.ok(Array.isArray(scan.data.devices));if(scan.data.adb)assert.equal(scan.data.readOnly,true);else assert.match(scan.data.message,/ADB/);
+  const aiStatus=await request('/api/ai/status',{key:sellerKey});assert.equal(aiStatus.status,200);assert.equal(typeof aiStatus.data.ok,'boolean');
   const ai=await request('/api/ai/assist',{method:'POST',key:sellerKey,body:{task:'diagnosis',context:'اختبار تشخيص تجريبي'}});
   assert.ok([200,502,503].includes(ai.status));
 

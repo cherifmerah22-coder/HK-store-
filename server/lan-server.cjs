@@ -26,6 +26,8 @@ function persist(){fs.writeFileSync(FILE+'.tmp',JSON.stringify(state,null,2),{mo
 const PROVIDER_KEY_FILE=path.join(DATA_DIR,'provider-secrets.key');
 let providerMasterKey;
 try{providerMasterKey=fs.readFileSync(PROVIDER_KEY_FILE)}catch{providerMasterKey=crypto.randomBytes(32);fs.writeFileSync(PROVIDER_KEY_FILE,providerMasterKey,{mode:0o600});try{fs.chmodSync(PROVIDER_KEY_FILE,0o600)}catch{}}
+function openSecret(value){if(!value||!value.iv||!value.tag||!value.data)return '';try{const d=crypto.createDecipheriv('aes-256-gcm',providerMasterKey,Buffer.from(value.iv,'base64'));d.setAuthTag(Buffer.from(value.tag,'base64'));return Buffer.concat([d.update(Buffer.from(value.data,'base64')),d.final()]).toString('utf8')}catch{return ''}}
+function cameraSoap(host,port,pathValue,username,password,action,body,secure=false){return new Promise(resolve=>{const transport=secure?https:http;const pathname=String(pathValue||'/onvif/device_service').startsWith('/')?String(pathValue||'/onvif/device_service'):'/onvif/device_service';const envelope='<?xml version="1.0" encoding="UTF-8"?>'+'<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:tds="http://www.onvif.org/ver10/device/wsdl"><s:Body>'+body+'</s:Body></s:Envelope>';const headers={'content-type':'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver10/device/wsdl/'+action+'"','content-length':Buffer.byteLength(envelope)};if(username)headers.authorization='Basic '+Buffer.from(String(username)+':'+String(password||'')).toString('base64');const req=transport.request({hostname:host,port:port|| (secure?443:80),path:pathname,method:'POST',headers,timeout:4500,rejectUnauthorized:false},res=>{let data='';res.setEncoding('utf8');res.on('data',c=>{data+=c;if(data.length>120000)req.destroy()});res.on('end',()=>resolve({status:res.statusCode||0,body:data.slice(0,120000)}))});req.on('timeout',()=>req.destroy(new Error('timeout')));req.on('error',e=>resolve({status:0,error:e.message,body:''}));req.end(envelope)})}
 function sealSecret(value){if(!value)return null;const iv=crypto.randomBytes(12),cipher=crypto.createCipheriv('aes-256-gcm',providerMasterKey,iv);const encrypted=Buffer.concat([cipher.update(String(value),'utf8'),cipher.final()]);return {iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),data:encrypted.toString('base64')}}
 function publicProvider(p){return {id:p.id,name:p.name,operator:p.operator,adapter:p.adapter,baseUrl:p.baseUrl,merchantId:p.merchantId||'',authType:p.authType||'bearer',hasApiKey:!!p.apiKeyEnc,hasApiSecret:!!p.apiSecretEnc,enabled:!!p.enabled,status:p.status||'not-tested',createdAt:p.createdAt,updatedAt:p.updatedAt}}
 function lanAddresses(){const out=[];for(const list of Object.values(os.networkInterfaces()))for(const item of list||[])if(item.family==='IPv4'&&!item.internal)out.push(item.address);return out}
@@ -68,6 +70,20 @@ const handleRequest=async(req,res)=>{
    try{socket.setBroadcast(true);socket.send(Buffer.from(probe),3702,'239.255.255.250',err=>{if(err)finish()})}catch{finish()}
   });
   setTimeout(finish,3500);return;
+ }
+ if(url.pathname==='/api/camera/onvif-check'&&req.method==='POST'){
+  if(!seller||!localRequest(req)||!safeEqual(req.headers['x-hk-camera-token'],state.cameraEventToken))return send(res,403,{error:'manager_local_access_required'});
+  let b;try{b=await read(req)}catch{return send(res,400,{error:'invalid_json'})}
+  const host=String(b.host||'').trim(),port=Number(b.port||80),pathValue=String(b.path||'/onvif/device_service').slice(0,300),username=String(b.username||''),password=String(b.password||'');
+  const a=host.split('.').map(Number),valid=a.length===4&&a.every(n=>Number.isInteger(n)&&n>=0&&n<=255),privateIp=valid&&(a[0]===10||(a[0]===192&&a[1]===168)||(a[0]===172&&a[1]>=16&&a[1]<=31));
+  if(!privateIp||!Number.isInteger(port)||port<1||port>65535)return send(res,400,{error:'private_ipv4_and_valid_port_required'});
+  const info=await cameraSoap(host,port,pathValue,username,password,'GetDeviceInformation','<tds:GetDeviceInformation/>',port===443);
+  if(info.status<200||info.status>=300)return send(res,200,{ok:false,status:info.status,error:info.error||'',authenticationRequired:info.status===401||info.status===403,digestAuthMayBeRequired:info.status===401,message:info.status===401?'الكاميرا تطلب مصادقة؛ هذا الفاحص يدعم Basic حالياً وقد تتطلب Digest أو WS-Security.':'لم يستجب مسار ONVIF القياسي؛ تحقق من تفعيل ONVIF والمسار والمنفذ.'});
+  const tag=n=>{const m=info.body.match(new RegExp('<(?:[\\w.-]+:)?'+n+'[^>]*>([\\s\\S]*?)<\\/(?:[\\w.-]+:)?'+n+'>','i'));return m?m[1].replace(/<[^>]+>/g,'').trim():''};
+  const maker=tag('Manufacturer'),model=tag('Model'),firmware=tag('FirmwareVersion'),serial=tag('SerialNumber');
+  const caps=await cameraSoap(host,port,pathValue,username,password,'GetCapabilities','<tds:GetCapabilities><tds:Category>All</tds:Category></tds:GetCapabilities>',port===443);
+  const services=['Media','Events','PTZ','Imaging','DeviceIO'].filter(x=>new RegExp(x,'i').test(caps.body||''));
+  return send(res,200,{ok:true,status:info.status,device:{manufacturer:maker,model,firmware,serial},services,events:services.includes('Events'),ptz:services.includes('PTZ'),media:services.includes('Media'),message:'نجح اتصال ONVIF الأساسي. يلزم اختبار الملف الشخصي والبث وأوامر PTZ كلٌ على حدة.'});
  }
  if(url.pathname==='/api/camera/config'&&req.method==='GET'){
   if(!seller||!localRequest(req))return send(res,403,{error:'manager_local_access_required'});

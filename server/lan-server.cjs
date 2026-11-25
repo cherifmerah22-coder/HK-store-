@@ -12,10 +12,13 @@ const FILE=path.join(DATA_DIR,'topup-lan.json');
 fs.mkdirSync(DATA_DIR,{recursive:true});
 let state;
 try{state=JSON.parse(fs.readFileSync(FILE,'utf8'))}catch{
- state={tabletKey:crypto.randomBytes(24).toString('hex'),sellerKey:crypto.randomBytes(24).toString('hex'),config:null,requests:[],providers:[]};
+ state={tabletKey:crypto.randomBytes(24).toString('hex'),sellerKey:crypto.randomBytes(24).toString('hex'),cameraEventToken:crypto.randomBytes(32).toString('hex'),cameraEvents:[],cameraEventSeq:0,config:null,requests:[],providers:[]};
  fs.writeFileSync(FILE,JSON.stringify(state,null,2));
 }
 if(!Array.isArray(state.providers))state.providers=[];
+if(!state.cameraEventToken)state.cameraEventToken=crypto.randomBytes(32).toString('hex');
+if(!Array.isArray(state.cameraEvents))state.cameraEvents=[];
+if(!Number.isInteger(state.cameraEventSeq))state.cameraEventSeq=state.cameraEvents.reduce((n,e)=>Math.max(n,Number(e.id)||0),0);
 function persist(){fs.writeFileSync(FILE+'.tmp',JSON.stringify(state,null,2));fs.renameSync(FILE+'.tmp',FILE)}
 const PROVIDER_KEY_FILE=path.join(DATA_DIR,'provider-secrets.key');
 let providerMasterKey;
@@ -23,7 +26,7 @@ try{providerMasterKey=fs.readFileSync(PROVIDER_KEY_FILE)}catch{providerMasterKey
 function sealSecret(value){if(!value)return null;const iv=crypto.randomBytes(12),cipher=crypto.createCipheriv('aes-256-gcm',providerMasterKey,iv);const encrypted=Buffer.concat([cipher.update(String(value),'utf8'),cipher.final()]);return {iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),data:encrypted.toString('base64')}}
 function publicProvider(p){return {id:p.id,name:p.name,operator:p.operator,adapter:p.adapter,baseUrl:p.baseUrl,merchantId:p.merchantId||'',authType:p.authType||'bearer',hasApiKey:!!p.apiKeyEnc,hasApiSecret:!!p.apiSecretEnc,enabled:!!p.enabled,status:p.status||'not-tested',createdAt:p.createdAt,updatedAt:p.updatedAt}}
 function lanAddresses(){const out=[];for(const list of Object.values(os.networkInterfaces()))for(const item of list||[])if(item.family==='IPv4'&&!item.internal)out.push(item.address);return out}
-function send(res,status,obj){res.writeHead(status,{'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*','access-control-allow-headers':'content-type,x-hk-key','access-control-allow-methods':'GET,POST,OPTIONS','cache-control':'no-store'});res.end(JSON.stringify(obj))}
+function send(res,status,obj){res.writeHead(status,{'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*','access-control-allow-headers':'content-type,x-hk-key,x-hk-camera-token','access-control-allow-methods':'GET,POST,OPTIONS','cache-control':'no-store'});res.end(JSON.stringify(obj))}
 function read(req){return new Promise((resolve,reject)=>{let s='';req.on('data',c=>{s+=c;if(s.length>20000)reject(new Error('too large'))});req.on('end',()=>{try{resolve(s?JSON.parse(s):{})}catch(e){reject(e)}});req.on('error',reject)})}
 function localRequest(req){const a=req.socket.remoteAddress||'';return a==='127.0.0.1'||a==='::1'||a==='::ffff:127.0.0.1'}
 const handleRequest=async(req,res)=>{
@@ -32,12 +35,27 @@ const handleRequest=async(req,res)=>{
  if(url.pathname==='/api/health'&&req.method==='GET')return send(res,200,{ok:true,service:'HK STORE LAN Top-up'});
  if(url.pathname==='/api/local-info'&&req.method==='GET'){
   if(!localRequest(req))return send(res,403,{error:'local only'});
-  return send(res,200,{port:8787,addresses:lanAddresses(),secure,baseUrl:secure?'https://127.0.0.1:8787':'http://127.0.0.1:8787',tabletKey:state.tabletKey,sellerKey:state.sellerKey});
+  return send(res,200,{port:8787,addresses:lanAddresses(),secure,baseUrl:secure?'https://127.0.0.1:8787':'http://127.0.0.1:8787',tabletKey:state.tabletKey,sellerKey:state.sellerKey,cameraEventToken:state.cameraEventToken});
  }
  const key=req.headers['x-hk-key'];
  const safeEqual=(a,b)=>{const x=Buffer.from(String(a||'')),y=Buffer.from(String(b||''));return x.length===y.length&&crypto.timingSafeEqual(x,y)};
  const seller=safeEqual(key,state.sellerKey);
  const tablet=safeEqual(key,state.tabletKey);
+ if(url.pathname==='/api/camera/event'&&req.method==='POST'){
+  if(!safeEqual(req.headers['x-hk-camera-token'],state.cameraEventToken))return send(res,403,{error:'camera_event_token_required'});
+  if(!allowRate('camera-event'))return send(res,429,{error:'camera_event_rate_limited'});
+  let b;try{b=await read(req)}catch{return send(res,400,{error:'invalid_json'})}
+  if(b.event!=='motion')return send(res,400,{error:'unsupported_camera_event'});
+  const event={id:++state.cameraEventSeq,type:'motion',camera:String(b.camera||'Somfy VISIDOM ICM100').slice(0,100),at:new Date().toISOString(),test:b.test===true};
+  state.cameraEvents.push(event);state.cameraEvents=state.cameraEvents.slice(-100);persist();
+  return send(res,201,{ok:true,eventId:event.id});
+ }
+ if(url.pathname==='/api/camera/events'&&req.method==='GET'){
+  if(!seller||!localRequest(req))return send(res,403,{error:'manager_local_access_required'});
+  const after=Number(url.searchParams.get('after')||0);
+  if(!Number.isSafeInteger(after)||after<0)return send(res,400,{error:'invalid_event_cursor'});
+  return send(res,200,{events:state.cameraEvents.filter(e=>e.id>after),latestId:state.cameraEventSeq});
+ }
  if(url.pathname==='/api/camera/test'&&req.method==='POST'){
   if(!seller||!localRequest(req))return send(res,403,{error:'manager_local_access_required'});
   let b;try{b=await read(req)}catch{return send(res,400,{error:'invalid_json'})}

@@ -679,6 +679,7 @@ async function loadPrayerTimes(force=false){
   prayerData=json.data;prayerLoadedDate=date;localStorage.setItem(key,JSON.stringify(prayerData));
   $('prayerNotice').textContent='المصدر: AlAdhan API — طريقة الحساب الجزائرية (19)، توقيت الجزائر. قد تختلف بعض الدقائق عن إعلان المسجد المحلي؛ اعتمد توقيت المسجد عند وجود فرق.';
   renderPrayerTimes();
+  if(localStorage.getItem('hkstore_prayer_alerts')==='1')scheduleNativePrayerNotifications();
  }catch(error){
   if(validPrayerData(cached)){prayerData=cached;prayerLoadedDate=date;renderPrayerTimes();$('prayerNotice').textContent='تعذر الاتصال لتحديث المواقيت؛ المعروض هو الجدول المحفوظ لهذا اليوم. تحقق من الإنترنت.'}
   else{$('prayerCards').innerHTML='<div class="empty">تعذر جلب مواقيت اليوم. تحقق من اتصال الإنترنت ثم اضغط «تحديث المواقيت».</div>';$('nextPrayerBox').textContent='لا يمكن تحديد الصلاة القادمة دون بيانات صحيحة.';$('prayerNotice').textContent='المصدر: AlAdhan API — طريقة الجزائر (19). لم يتم تحميل جدول اليوم.'}
@@ -696,15 +697,42 @@ function renderPrayerTimes(){
  $('prayerCards').innerHTML=items.map(x=>'<div class="prayer-card '+(x.key===next.key&&!tomorrow?'next':'')+'"><b>'+x.name+'</b><strong>'+x.time+'</strong></div>').join('');
  $('nextPrayerBox').textContent='الصلاة القادمة: '+next.name+' — '+next.time+(tomorrow?' غداً':'')+' | المتبقي تقريباً: '+(hours?hours+' ساعة ':'')+mins+' دقيقة';
 }
+function nativePrayerNotifications(){return window.Capacitor?.Plugins?.LocalNotifications||null}
+async function scheduleNativePrayerNotifications(){
+ const plugin=nativePrayerNotifications();if(!plugin||!validPrayerData(prayerData))return false;
+ try{
+  const permission=await plugin.checkPermissions();
+  if(permission.display!=='granted'){const asked=await plugin.requestPermissions();if(asked.display!=='granted')return false}
+  try{await plugin.createChannel({id:'hk-adhan',name:'تنبيهات الأذان',description:'تنبيه عند دخول وقت الصلاة',importance:5,sound:'default',visibility:1})}catch{}
+  const now=new Date(),items=[];
+  for(const [index,[key,name]] of Object.entries(PRAYER_NAMES).entries()){
+   const [hh,mm]=prayerTimeValue(prayerData.timings[key]).split(':').map(Number);
+   const at=new Date(now);at.setHours(hh,mm,0,0);if(at<=now)at.setDate(at.getDate()+1);
+   items.push({id:6101+index,title:'حان الآن وقت صلاة '+name,body:'حيّ على الصلاة • مواقيت الحاسي تمهريت',channelId:'hk-adhan',schedule:{at,allowWhileIdle:true,repeats:true,every:'day'},smallIcon:'ic_launcher'});
+  }
+  try{await plugin.cancel({notifications:items.map(x=>({id:x.id}))})}catch{}
+  await plugin.schedule({notifications:items});return true;
+ }catch(error){console.warn('HK prayer schedule failed',error);return false}
+}
 async function enablePrayerNotifications(){
- if(!('Notification'in window))return alert('هذا الجهاز لا يدعم الإشعارات');
  if(!prayerData)await loadPrayerTimes();
- if(!prayerData)return alert('حمّل مواقيت الصلاة أولاً ثم أعد تفعيل التنبيهات');
+ if(!validPrayerData(prayerData))return alert('حمّل مواقيت الصلاة أولاً ثم أعد تفعيل التنبيهات');
+ const plugin=nativePrayerNotifications();
+ if(plugin){
+  const ok=await scheduleNativePrayerNotifications();
+  if(ok){localStorage.setItem('hkstore_prayer_alerts','1');$('prayerNotice').textContent='تنبيهات الأذان مفعّلة على هذا الجهاز. ستصل في أوقاتها حتى عند إغلاق التطبيق، وفق سماح النظام بالإشعارات والتنبيهات.';alert('تم جدولة تنبيهات الأذان اليومية للصلوات الخمس');return}
+  return alert('تعذر تفعيل إشعارات أندرويد. اسمح بإشعارات التطبيق من إعدادات الهاتف ثم أعد المحاولة.');
+ }
+ if(!('Notification'in window))return alert('هذا الجهاز لا يدعم الإشعارات');
  const permission=await Notification.requestPermission();
- if(permission==='granted'){localStorage.setItem('hkstore_prayer_alerts','1');$('prayerNotice').textContent='التنبيهات مفعلة. يجب إبقاء التطبيق مفتوحاً والسماح بإشعارات النظام؛ قد يوقف النظام التنبيه عند إغلاق التطبيق أو تقييده.';checkPrayerNotification();alert('تم تفعيل تنبيهات الصلاة')}
+ if(permission==='granted'){localStorage.setItem('hkstore_prayer_alerts','1');$('prayerNotice').textContent='التنبيهات مفعلة أثناء تشغيل التطبيق. في نسخة المتصفح يجب إبقاء التطبيق مفتوحاً.';checkPrayerNotification();alert('تم تفعيل تنبيهات الصلاة')}
  else alert('لم يتم السماح بالإشعارات من إعدادات الجهاز');
 }
-function disablePrayerNotifications(){localStorage.removeItem('hkstore_prayer_alerts');$('prayerNotice').textContent='تم إيقاف تنبيهات الصلاة.'}
+async function disablePrayerNotifications(){
+ localStorage.removeItem('hkstore_prayer_alerts');
+ const plugin=nativePrayerNotifications();if(plugin){try{await plugin.cancel({notifications:[6101,6102,6103,6104,6105].map(id=>({id}))})}catch{}}
+ $('prayerNotice').textContent='تم إيقاف تنبيهات الأذان وإلغاء المواعيد المجدولة.';
+}
 function checkPrayerNotification(){
  if(localStorage.getItem('hkstore_prayer_alerts')!=='1'||!validPrayerData(prayerData)||!('Notification'in window)||Notification.permission!=='granted')return;
  const now=new Date(),today=localPrayerDate(now),minute=now.getHours()*60+now.getMinutes();

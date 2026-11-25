@@ -30,7 +30,7 @@ function send(res,status,obj){res.writeHead(status,{'content-type':'application/
 function read(req){return new Promise((resolve,reject)=>{let s='';req.on('data',c=>{s+=c;if(s.length>20000)reject(new Error('too large'))});req.on('end',()=>{try{resolve(s?JSON.parse(s):{})}catch(e){reject(e)}});req.on('error',reject)})}
 function localRequest(req){const a=req.socket.remoteAddress||'';return a==='127.0.0.1'||a==='::1'||a==='::ffff:127.0.0.1'}
 const handleRequest=async(req,res)=>{
- if(req.method==='OPTIONS'){res.writeHead(204,{'access-control-allow-origin':'*','access-control-allow-headers':'content-type,x-hk-key','access-control-allow-methods':'GET,POST,OPTIONS'});return res.end();}
+ if(req.method==='OPTIONS'){res.writeHead(204,{'access-control-allow-origin':'*','access-control-allow-headers':'content-type,x-hk-key,x-hk-camera-token','access-control-allow-methods':'GET,POST,OPTIONS'});return res.end();}
  const url=new URL(req.url,'http://localhost');
  if(url.pathname==='/api/health'&&req.method==='GET')return send(res,200,{ok:true,service:'HK STORE LAN Top-up'});
  if(url.pathname==='/api/local-info'&&req.method==='GET'){

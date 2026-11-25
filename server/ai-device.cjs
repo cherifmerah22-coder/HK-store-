@@ -15,9 +15,9 @@ async function aiStatus(){
   const response=await fetch(base+'/health',{signal:AbortSignal.timeout(5000)});
   if(!response.ok)return {ok:false,provider:'llama.cpp',message:'محرك الذكاء الاصطناعي المدمج لا يستجيب.'};
   const models=await fetch(base+'/v1/models',{signal:AbortSignal.timeout(5000)}).then(r=>r.ok?r.json():({}));
-  const model=models.data?.[0]?.id||'Qwen2.5-3B-Instruct';
+  const model=models.data?.[0]?.id||'Qwen2.5-1.5B-Instruct';
   return {ok:true,provider:'llama.cpp-local',model,message:'محرك الذكاء الاصطناعي المحلي جاهز.'};
- }catch{return {ok:false,provider:'llama.cpp',model:'Qwen2.5-3B-Instruct',message:'لم يبدأ محرك الذكاء الاصطناعي المدمج بعد.'};}
+ }catch{return {ok:false,provider:'llama.cpp',model:'Qwen2.5-1.5B-Instruct',message:'لم يبدأ محرك الذكاء الاصطناعي المدمج بعد.'};}
 }
 async function aiAssist(body){
  const status=await aiStatus();

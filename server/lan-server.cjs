@@ -102,6 +102,18 @@ const handleRequest=async(req,res)=>{
   if(!Number.isSafeInteger(after)||after<0)return send(res,400,{error:'invalid_event_cursor'});
   return send(res,200,{events:state.cameraEvents.filter(e=>e.id>after),latestId:state.cameraEventSeq});
  }
+ if(url.pathname==='/api/camera/probe'&&req.method==='POST'){
+  if(!seller||!localRequest(req)||!safeEqual(req.headers['x-hk-camera-token'],state.cameraEventToken))return send(res,403,{error:'manager_local_access_required'});
+  let b;try{b=await read(req)}catch{return send(res,400,{error:'invalid_json'})}
+  const host=String(b.host||'').trim(),oct=host.split('.').map(Number),valid=oct.length===4&&oct.every(n=>Number.isInteger(n)&&n>=0&&n<=255),privateIp=valid&&(oct[0]===10||(oct[0]===192&&oct[1]===168)||(oct[0]===172&&oct[1]>=16&&oct[1]<=31));
+  if(!privateIp)return send(res,400,{error:'private_ipv4_required',message:'يسمح بالفحص داخل شبكة المحل فقط باستخدام IPv4 خاص.'});
+  const ports=[80,81,443,554,555,8000,8080,8081,8443,8554,8899,9000,37777,34567];
+  const checkPort=port=>new Promise(resolve=>{const sock=new net.Socket();let settled=false;const done=(open,banner='')=>{if(settled)return;settled=true;sock.destroy();resolve({port,open,banner})};sock.setTimeout(1100);sock.once('connect',()=>{if(port===554||port===8554){sock.write('OPTIONS rtsp://'+host+'/ RTSP/1.0\\r\\nCSeq: 1\\r\\nUser-Agent: HK-STORE\\r\\n\\r\\n');let data='';sock.on('data',d=>{data+=d.toString('utf8');if(data.length>2048||data.includes('\\r\\n\\r\\n'))done(true,data.slice(0,500))});setTimeout(()=>done(true,data.slice(0,500)),700)}else done(true)});sock.once('timeout',()=>done(false));sock.once('error',()=>done(false));sock.connect(port,host)});
+  const results=await Promise.all(ports.map(checkPort)),open=results.filter(x=>x.open);
+  const protocols=[];if(open.some(x=>x.port===554||x.port===8554))protocols.push('RTSP');if(open.some(x=>[80,81,443,8000,8080,8081,8443].includes(x.port)))protocols.push('HTTP/HTTPS — يلزم فحص المسار والمصادقة');if(open.some(x=>x.port===8899))protocols.push('منفذ محتمل لواجهة ONVIF/SDK — غير مؤكد');if(open.some(x=>[37777,34567,9000].includes(x.port)))protocols.push('منفذ شركة/SDK محتمل — يحتاج موصل الشركة');
+  const rtspResponded=open.some(x=>/RTSP\\/1\\.[01]\\s+\\d+/i.test(x.banner));
+  return send(res,200,{ok:true,host,openPorts:open.map(x=>({port:x.port,banner:x.banner})),protocols,rtspResponded,message:open.length?'تم اكتشاف منافذ مفتوحة. هذا فحص أولي ولا يثبت بث الفيديو أو عمل الحساسات.':'لم تُكتشف منافذ الكاميرا الشائعة؛ قد تستخدم منافذاً مخصصة أو تمنع الاتصالات.'});
+ }
  if(url.pathname==='/api/camera/test'&&req.method==='POST'){
   if(!seller||!localRequest(req)||!safeEqual(req.headers['x-hk-camera-token'],state.cameraEventToken))return send(res,403,{error:'manager_local_access_required'});
   let b;try{b=await read(req)}catch{return send(res,400,{error:'invalid_json'})}

@@ -54,14 +54,14 @@ jobs:
           if (-not $server) { throw "llama-server.exe was not produced by the native build." }
           Copy-Item $server.FullName resources/ai/bin/llama-server.exe
           Get-ChildItem $server.DirectoryName -Filter *.dll | Copy-Item -Destination resources/ai/bin
-      - name: Download and verify bundled Qwen model
+      - name: Download and verify bundled Apache-2.0 Qwen 1.5B model
         shell: pwsh
         run: |
-          $model = "resources/ai/models/Qwen2.5-3B-Instruct-Q4_K_M.gguf"
-          $url = "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/Qwen2.5-3B-Instruct-Q4_K_M.gguf?download=true"
+          $model = "resources/ai/models/qwen2.5-1.5b-instruct-q4_k_m.gguf"
+          $url = "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf?download=true"
           Invoke-WebRequest -Uri $url -OutFile $model
           $size = (Get-Item $model).Length
-          if ($size -lt 1500000000) { throw "Downloaded GGUF model is unexpectedly small ($size bytes)." }
+          if ($size -lt 800000000) { throw "Downloaded GGUF model is unexpectedly small ($size bytes)." }
           Get-FileHash $model -Algorithm SHA256 | Format-List
       - name: Install dependencies
         run: npm install

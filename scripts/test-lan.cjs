@@ -37,6 +37,21 @@ async function waitForServer(){
   const {tabletKey,sellerKey,cameraEventToken}=local.data;
   assert.equal(local.data.secure,false);assert.ok(cameraEventToken);
 
+  const cameraConfigDenied=await request('/api/camera/config',{method:'POST',key:tabletKey,body:{name:'Test camera',host:'192.168.1.50',protocol:'rtsp',port:554}});
+  assert.equal(cameraConfigDenied.status,403);
+  const cameraConfig=await request('/api/camera/config',{method:'POST',key:sellerKey,body:{name:'Somfy test fixture',model:'VISIDOM ICM100',place:'HK STORE test',host:'192.168.1.50',protocol:'unknown',port:554,username:'demo-user',password:'demo-password'}});
+  assert.equal(cameraConfig.status,201);assert.equal(cameraConfig.data.camera.hasCredentials,true);
+  const cameraId=cameraConfig.data.camera.id;
+  const cameraList=await request('/api/camera/config',{key:sellerKey});
+  assert.equal(cameraList.status,200);assert.equal(cameraList.data.cameras.length,1);
+  assert.equal(JSON.stringify(cameraList.data).includes('demo-password'),false);
+  assert.equal((await request('/api/camera/config/'+cameraId,{method:'PATCH',key:sellerKey,body:{primary:true}})).status,200);
+  assert.equal((await request('/api/camera/config',{key:sellerKey})).data.cameras[0].primary,true);
+  assert.equal((await request('/api/camera/config/'+cameraId,{method:'PATCH',key:sellerKey,body:{primary:'yes'}})).status,400);
+  assert.equal((await request('/api/camera/config/'+cameraId,{method:'DELETE',key:tabletKey})).status,403);
+  assert.equal((await request('/api/camera/config/'+cameraId,{method:'DELETE',key:sellerKey})).status,200);
+  assert.equal((await request('/api/camera/config',{key:sellerKey})).data.cameras.length,0);
+
   const cameraDenied=await request('/api/camera/test',{method:'POST',key:tabletKey,body:{host:'192.168.1.50',port:554}});
   assert.equal(cameraDenied.status,403);
   const cameraRejectPublic=await request('/api/camera/test',{method:'POST',key:sellerKey,cameraToken:cameraEventToken,body:{host:'127.0.0.1',port:554}});

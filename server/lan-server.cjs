@@ -31,11 +31,11 @@ function cameraSoap(host,port,pathValue,username,password,action,body,secure=fal
 function sealSecret(value){if(!value)return null;const iv=crypto.randomBytes(12),cipher=crypto.createCipheriv('aes-256-gcm',providerMasterKey,iv);const encrypted=Buffer.concat([cipher.update(String(value),'utf8'),cipher.final()]);return {iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),data:encrypted.toString('base64')}}
 function publicProvider(p){return {id:p.id,name:p.name,operator:p.operator,adapter:p.adapter,baseUrl:p.baseUrl,merchantId:p.merchantId||'',authType:p.authType||'bearer',hasApiKey:!!p.apiKeyEnc,hasApiSecret:!!p.apiSecretEnc,enabled:!!p.enabled,status:p.status||'not-tested',createdAt:p.createdAt,updatedAt:p.updatedAt}}
 function lanAddresses(){const out=[];for(const list of Object.values(os.networkInterfaces()))for(const item of list||[])if(item.family==='IPv4'&&!item.internal)out.push(item.address);return out}
-function send(res,status,obj){res.writeHead(status,{'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*','access-control-allow-headers':'content-type,x-hk-key,x-hk-camera-token','access-control-allow-methods':'GET,POST,OPTIONS','cache-control':'no-store'});res.end(JSON.stringify(obj))}
+function send(res,status,obj){res.writeHead(status,{'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*','access-control-allow-headers':'content-type,x-hk-key,x-hk-camera-token','access-control-allow-methods':'GET,POST,PATCH,DELETE,OPTIONS','cache-control':'no-store'});res.end(JSON.stringify(obj))}
 function read(req){return new Promise((resolve,reject)=>{let s='';req.on('data',c=>{s+=c;if(s.length>20000)reject(new Error('too large'))});req.on('end',()=>{try{resolve(s?JSON.parse(s):{})}catch(e){reject(e)}});req.on('error',reject)})}
 function localRequest(req){const a=req.socket.remoteAddress||'';return a==='127.0.0.1'||a==='::1'||a==='::ffff:127.0.0.1'}
 const handleRequest=async(req,res)=>{
- if(req.method==='OPTIONS'){res.writeHead(204,{'access-control-allow-origin':'*','access-control-allow-headers':'content-type,x-hk-key,x-hk-camera-token','access-control-allow-methods':'GET,POST,OPTIONS'});return res.end();}
+ if(req.method==='OPTIONS'){res.writeHead(204,{'access-control-allow-origin':'*','access-control-allow-headers':'content-type,x-hk-key,x-hk-camera-token','access-control-allow-methods':'GET,POST,PATCH,DELETE,OPTIONS'});return res.end();}
  const url=new URL(req.url,'http://localhost');
  if(url.pathname==='/api/health'&&req.method==='GET')return send(res,200,{ok:true,service:'HK STORE LAN Top-up'});
  if(url.pathname==='/api/local-info'&&req.method==='GET'){

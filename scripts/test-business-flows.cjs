@@ -22,7 +22,7 @@ function extract(name){
  }
  throw new Error('unclosed function '+name);
 }
-const names=['addProduct','addSaleToCart','addSale','payDebt','addRepair','setRepairStatus','addPart','usePart','normalizeAccessoryModel','productSupportsModel','resetCustomerAdIdle','costNextDate','costReminderText','addCost','payCost'];
+const names=['addProduct','addSaleToCart','addSale','payDebt','addRepair','setRepairStatus','addPart','usePart','normalizeAccessoryModel','productSupportsModel','resetCustomerAdIdle','showCustomerAd','idleAdConfig','costNextDate','costReminderText','addCost','payCost'];
 const fields={},alerts=[];
 let saved=0,promptValue='2',timerDelay=null;
 const db={

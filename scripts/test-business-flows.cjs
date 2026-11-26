@@ -51,7 +51,7 @@ for(const name of names)vm.runInNewContext(extract(name),context,{filename:'HK S
  run("current='customer'");run('resetCustomerAdIdle()');assert.equal(timerDelay,600000);timerDelay=null;run("current='seller'");run('resetCustomerAdIdle()');assert.equal(timerDelay,null);
  // Operational costs are separate from stock purchases; recurring costs schedule the next due date after full payment.
  run("current='manager'");run('addCost()');assert.equal(db.costs.length,1);assert.equal(db.costs[0].status,'غير مدفوع');assert.equal(run("costReminderText(db.costs[0])"),'يستحق خلال 5 أيام');
- promptValue='1000';run('payCost('+db.costs[0].id+')');assert.equal(db.costs[0].status,'مدفوع');assert.equal(db.costs.length,2);assert.equal(db.costs[1].dueDate,'2027-01-01');
+ promptValue='1000';const originalCostId=db.costs[0].id;run('payCost('+originalCostId+')');const originalCost=db.costs.find(x=>x.id===originalCostId);assert.equal(originalCost.status,'مدفوع');assert.equal(db.costs.length,2);const nextCost=db.costs.find(x=>x.sourceCostId===originalCostId);assert.ok(nextCost,'next recurring cost is generated');assert.equal(nextCost.dueDate,'2027-01-01');
  run("current='tech'");run('addCost()');assert.equal(db.costs.length,2);
  run("current='manager'");fields.pName.value='Invalid qty';fields.pQty.value='-1';run('addProduct()');assert.equal(db.products.length,1);
  run("current='seller'");fields.saleProduct.value=String(db.products[0].id);fields.saleQty.value='999';fields.salePrice.value='1400';run('addSaleToCart()');assert.equal(context.saleCart.length,0);

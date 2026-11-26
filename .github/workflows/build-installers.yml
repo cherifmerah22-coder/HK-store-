@@ -145,6 +145,23 @@ jobs:
         run: node scripts/test-permissions.cjs
       - name: Simulate product sales debt and repair workflows
         run: node scripts/test-business-flows.cjs
+      - name: Run live AI simulations with sample accessory and repair inventories
+        shell: pwsh
+        run: |
+          $server = Start-Process -FilePath "resources/ai/bin/llama-server.exe" -ArgumentList @("--model","resources/ai/models/qwen2.5-1.5b-instruct-q4_k_m.gguf","--host","127.0.0.1","--port","11435","--ctx-size","2048","--n-gpu-layers","0") -PassThru -WindowStyle Hidden
+          try {
+            $ready = $false
+            for ($i = 0; $i -lt 90; $i++) {
+              if ($server.HasExited) { throw "AI server exited before simulation." }
+              try { Invoke-RestMethod "http://127.0.0.1:11435/health" -TimeoutSec 3 | Out-Null; $ready = $true; break } catch {}
+              Start-Sleep -Seconds 2
+            }
+            if (-not $ready) { throw "AI server did not become ready for live simulations." }
+            node scripts/test-ai-simulation.cjs
+            if ($LASTEXITCODE -ne 0) { throw "Live AI simulation failed." }
+          } finally {
+            if ($server -and -not $server.HasExited) { Stop-Process -Id $server.Id -Force }
+          }
       - name: Test LAN API integration
         run: node scripts/test-lan.cjs
       - name: Prepare app files

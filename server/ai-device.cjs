@@ -57,7 +57,7 @@ async function aiAssist(body){
    const exactParts=readJsonArrayAfterLabel(context,['قطع الغيار المؤكدة لهذا الموديل والمتوفرة:','قطع الغيار المؤكدة والمتوفرة لهذا الموديل:','قطع غيار مؤكدة التوافق ومتوفرة:']);
    if(exactParts.length){
     const facts=exactParts.map(p=>String(p.name||'قطعة غير مسماة')+' — الكمية: '+(p.available??p.qty??'غير مسجلة')+' — الرمز: '+(p.code??'غير مسجل')).join('؛ ');
-    answer+='\\n\\nقطع الغيار المؤكدة المسجلة في مخزون HK STORE لهذا الموديل (لا يعني ذلك ضرورة الاستبدال قبل الفحص): '+facts;
+    answer+='\n\nقطع الغيار المؤكدة المسجلة في مخزون HK STORE لهذا الموديل (لا يعني ذلك ضرورة الاستبدال قبل الفحص): '+facts;
    }
    const seen=new Set();let numbered=0;
    answer=answer.split(/\r?\n/).filter(line=>{
@@ -79,9 +79,9 @@ async function aiAssist(body){
    const unverified=readJsonArrayAfterLabel(context,['منتجات موجودة لكنها غير مؤكدة التوافق:','منتجات موجودة غير مؤكدة:','منتجات غير مؤكدة:']);
    if(exact.length){
     const facts=exact.map(p=>String(p.name||'منتج غير مسمى')+' — السعر: '+(p.price??'غير مسجل')+' — الكمية: '+(p.qty??'غير مسجلة')).join('؛ ');
-    answer='المخزون المؤكد حسب سجل HK STORE (بيانات المنتج كما سُجلت): '+facts+'\\n\\n'+answer;
+    answer='المخزون المؤكد حسب سجل HK STORE (بيانات المنتج كما سُجلت): '+facts+'\n\n'+answer;
    }else{
-    answer='لا توجد في البيانات المقدمة منتجات مؤكدة التوافق ومتوفرة لهذا الموديل. لا تعتمد أي بديل قبل الفحص العملي وتسجيل التوافق.\\n\\n'+answer;
+    answer='لا توجد في البيانات المقدمة منتجات مؤكدة التوافق ومتوفرة لهذا الموديل. لا تعتمد أي بديل قبل الفحص العملي وتسجيل التوافق.\n\n'+answer;
    }
 
   }

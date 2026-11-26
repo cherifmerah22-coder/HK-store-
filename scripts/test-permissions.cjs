@@ -27,7 +27,10 @@ const checks=[
  ['addTopupSource',"db.users[current]?.role!=='manager'"],
  ['editTopupSource',"db.users[current]?.role!=='manager'"],
  ['toggleTopupSource',"db.users[current]?.role!=='manager'"],
- ['deleteTopupSource',"db.users[current]?.role!=='manager'"]
+ ['deleteTopupSource',"db.users[current]?.role!=='manager'"],
+ ['addCost',"db.users[current]?.role!=='manager'"],
+ ['payCost',"db.users[current]?.role!=='manager'"],
+ ['deleteCost',"db.users[current]?.role!=='manager'"]
 ];
 function body(name){
  const re=new RegExp('function\\s+'+name+'\\s*\\(');

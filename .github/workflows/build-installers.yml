@@ -143,6 +143,8 @@ jobs:
         run: node scripts/check-syntax.cjs
       - name: Test role permissions and inventory validation
         run: node scripts/test-permissions.cjs
+      - name: Simulate product sales debt and repair workflows
+        run: node scripts/test-business-flows.cjs
       - name: Test LAN API integration
         run: node scripts/test-lan.cjs
       - name: Prepare app files

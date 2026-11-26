@@ -26,7 +26,7 @@ function readJsonArrayAfterLabel(context,labels){
   let depth=0,quoted=false,escaped=false;
   for(let i=start;i<context.length;i++){
    const ch=context[i];
-   if(quoted){if(escaped)escaped=false;else if(ch==='\\\\')escaped=true;else if(ch==='"')quoted=false;continue;}
+   if(quoted){if(escaped)escaped=false;else if(ch.charCodeAt(0)===92)escaped=true;else if(ch==='"')quoted=false;continue;}
    if(ch==='"'){quoted=true;continue;}
    if(ch==='[')depth++;
    else if(ch===']'&&--depth===0){try{const value=JSON.parse(context.slice(start,i+1));if(Array.isArray(value))return value;}catch{}break;}
@@ -62,9 +62,7 @@ async function aiAssist(body){
    }else{
     answer='لا توجد في البيانات المقدمة منتجات مؤكدة التوافق ومتوفرة لهذا الموديل. لا تعتمد أي بديل قبل الفحص العملي وتسجيل التوافق.\\n\\n'+answer;
    }
-   for(const item of unverified){if(item.name){const escaped=String(item.name).replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\const answer=data.choices?.[0]?.message?.content;
-  if(typeof answer!=='string'||!answer.trim())return {status:502,data:{error:'AI_EMPTY_RESPONSE'}};
-  return {status:200,data:{ok:true,provider:'llama.cpp-local',model:status.model,answer:answer.slice(0,12000)}};');answer=answer.replace(new RegExp(escaped,'gi'),'المنتج غير المؤكد من المخزون');}}
+
   }
   return {status:200,data:{ok:true,provider:'llama.cpp-local',model:status.model,answer:answer.slice(0,12000)}};
  }catch(e){return {status:502,data:{error:'LOCAL_AI_CONNECTION_FAILED',message:e.name==='AbortError'?'استغرق النموذج وقتاً أطول من المتوقع.':'تعذر الاتصال بمحرك الذكاء الاصطناعي المدمج.'}}}

@@ -57,6 +57,7 @@ for(const name of names)vm.runInNewContext(extract(name),context,{filename:'HK S
  run("current='seller'");fields.saleProduct.value=String(db.products[0].id);fields.saleQty.value='999';fields.salePrice.value='1400';run('addSaleToCart()');assert.equal(context.saleCart.length,0);
  // AI accessory guidance must separate exact matches from unverified alternatives.
  db.products[0].category='شاحن';db.products[0].compatibleModels='Samsung Galaxy A55';db.products[0].connector='USB-C';db.products[0].wattage=25;db.products[0].chargingProtocol='PD';
+ db.products.push({id:2,name:'شاحن USB-C 20W',category:'شاحن',compatibleModels:'Samsung Galaxy A54',qty:3,sell:1100,connector:'USB-C',wattage:20,chargingProtocol:'PD'});
  fields.accessoryModel.value='Samsung Galaxy A55';fields.accessoryType.value='شاحن';
  run("current='seller'");await run('analyzeAccessoryWithAI()');assert.equal(aiCalls.at(-1).task,'accessory');assert.match(aiCalls.at(-1).context,/confirmed_exact_model/);assert.match(aiCalls.at(-1).context,/unverified_candidate/);
  // Repair AI receives device fault, prior repairs, and separate compatible/unverified spare-part stock.

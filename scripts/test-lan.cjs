@@ -66,6 +66,8 @@ async function waitForServer(){
   assert.equal((await request('/api/camera/events?after=0',{key:tabletKey,cameraToken:cameraEventToken})).status,403);
   const cameraPreflight=await fetch(base+'/api/camera/event',{method:'OPTIONS',headers:{'access-control-request-headers':'content-type,x-hk-camera-token'}});
   assert.match(cameraPreflight.headers.get('access-control-allow-headers')||'',/x-hk-camera-token/);
+  assert.match(cameraPreflight.headers.get('access-control-allow-methods')||'',/PATCH/);
+  assert.match(cameraPreflight.headers.get('access-control-allow-methods')||'',/DELETE/);
 
   assert.equal((await request('/api/topup/providers',{key:tabletKey})).status,403);
   const providerCreate=await request('/api/topup/providers',{method:'POST',key:sellerKey,body:{name:'مزود تجريبي',operator:'Mobilis',adapter:'provider_specific',authType:'bearer',baseUrl:'https://api.example.test/v1',merchantId:'HK-DEMO',apiKey:'test-secret',apiSecret:'test-secret-2'}});

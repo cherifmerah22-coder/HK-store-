@@ -806,7 +806,7 @@ function checkFirmwareCompatibility(){
 }
 renderFirmwareHistory();
 initCustomerAdIdle();
-setInterval(()=>{if(db.users[current]?.role==='customer'){loadTabletConfig();if(!$('hkIdleAdOverlay').classList.contains('active'))resetCustomerAdIdle()}else if(['manager','seller'].includes(db.users[current]?.role))refreshLanRequests();if(db.users[current]?.role==='manager')pollCameraEvents()},5000);
+setInterval(()=>{if(db.users[current]?.role==='customer')loadTabletConfig();else if(['manager','seller'].includes(db.users[current]?.role))refreshLanRequests();if(db.users[current]?.role==='manager')pollCameraEvents()},5000);
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 setInterval(()=>{if(db.users[current]?.role==='manager')pollSomfyNotifications()},4000);
 </script></body></html>

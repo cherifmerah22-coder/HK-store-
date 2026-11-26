@@ -441,7 +441,7 @@ async function checkHKAIStatus(silent=false){const box=$('hkAIStatus');if(!box)r
 function searchSoftwareOnWeb(){
  const brand=$('swBrand').value,model=$('swModel').value.trim(),fault=$('swFault').value.trim(),kind=$('swIssueType')?.selectedOptions?.[0]?.textContent||'';
  if(!model||!fault)return alert('أدخل الموديل الدقيق ووصف العطل أولاً');
- const official={Samsung:'site:samsung.com/support OR site: samsung.com', 'Xiaomi / Redmi':'site:mi.com/global/support OR site:mi.com',OPPO:'site:support.oppo.com',Realme:'site:realme.com/support',Infinix:'site:infinixmobility.com',Tecno:'site:tecno-mobile.com',Honor:'site:honor.com/support',Huawei:'site:consumer.huawei.com/support',Apple:'site:support.apple.com'};
+ const official={Samsung:'site:samsung.com/support OR site:samsung.com', 'Xiaomi / Redmi':'site:mi.com/global/support OR site:mi.com',OPPO:'site:support.oppo.com',Realme:'site:realme.com/support',Infinix:'site:infinixmobility.com',Tecno:'site:tecno-mobile.com',Honor:'site:honor.com/support',Huawei:'site:consumer.huawei.com/support',Apple:'site:support.apple.com'};
  const query=[official[brand]||'',brand,model,kind,fault,'official support firmware recovery'].filter(Boolean).join(' ');
  const url='https://www.google.com/search?q='+encodeURIComponent(query);
  $('swWebResearch').textContent='فتح بحث ويب عن '+brand+' '+model+' مع تفضيل وثائق الدعم الرسمية. تحقق من النطاق والنسخة والمنطقة قبل تنزيل أي ملف.';

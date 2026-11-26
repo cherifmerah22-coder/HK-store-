@@ -60,14 +60,19 @@ async function aiAssist(body){
     answer+='\\n\\nقطع الغيار المؤكدة المسجلة في مخزون HK STORE لهذا الموديل (لا يعني ذلك ضرورة الاستبدال قبل الفحص): '+facts;
    }
    const seen=new Set();let numbered=0;
-   answer=answer.split(/\\r?\\n/).filter(line=>{
+   answer=answer.split(/\r?\n/).filter(line=>{
     const trimmed=line.trim();
-    const match=trimmed.match(/^\\d+[.)]\\s*(.+)$/);
+    const match=trimmed.match(/^\d+[.)]\s*(.+)$/);
     if(!match)return true;
-    const key=match[1].replace(/\\s+/g,' ').trim().toLocaleLowerCase();
+    const key=match[1].replace(/^\*\*|\*\*$/g,'').replace(/\s+/g,' ').trim().toLocaleLowerCase();
     if(seen.has(key))return false;
     seen.add(key);numbered++;return numbered<=8;
-   }).join('\\n');
+   }).join('\n');
+   if(/نسيت.{0,12}(?:رمز|كلمة المرور|PIN)|رمز الشاشة|screen PIN|activation lock|FRP|قفل الحساب|نسيان رمز/i.test(context)){
+    answer+='\n\nتنبيه حماية البيانات: لا يمكن ضمان الاحتفاظ بالصور والبيانات عند نسيان رمز الشاشة. لا تنفذ إعادة ضبط المصنع أو التفليش قبل موافقة المالك والتحقق من إثبات الملكية؛ إعادة الضبط قد تمحو البيانات وقد يطلب الهاتف حساب Google السابق بعد التشغيل.';
+   }else if(/Bootloop|توقف عند الشعار|يعلق عند الشعار|فشل التحديث|interrupted update|Recovery|Fastboot/i.test(context)){
+    answer+='\n\nتنبيه قبل التفليش: لا تبدأ مسح البيانات أو تثبيت Firmware قبل التحقق من رقم الطراز الكامل والمنطقة/CSC ومراجعة إصدار Bootloader ومصدر ملف الشركة الرسمي. اطلب موافقة الزبون ونسخاً احتياطياً إن أمكن؛ قد يؤدي التفليش أو إعادة الضبط إلى فقدان البيانات.';
+   }
   }
   if(task==='accessory'){
    const exact=readJsonArrayAfterLabel(context,['منتجات مؤكدة التوافق ومسجلة لهذا الموديل ومتوفرة:','المنتجات المؤكدة التوافق والمتوفرة:','منتجات مؤكدة التوافق والمتوفرة:']);

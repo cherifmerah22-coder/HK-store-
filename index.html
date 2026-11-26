@@ -655,7 +655,8 @@ function printDocument(title,rows,note='شكراً لثقتكم بـ HK STORE'){
  const w=window.open('','_blank','width=520,height=760');
  if(!w)return alert('اسمح بالنوافذ المنبثقة لمعاينة الطباعة');
  const body=rows.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td></tr>').join('');
- const paper=p.paper==='58mm'||p.paper==='80mm'?p.paper:p.paper+' '+p.orientation;
+ const thermal=p.paper==='58mm'||p.paper==='80mm';
+ const paper=thermal?'auto':p.paper+' '+p.orientation;
  const html=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>
  <style>
  :root{--fs:${p.fontSize}px;--pad:${p.margin}mm}
@@ -664,9 +665,9 @@ function printDocument(title,rows,note='شكراً لثقتكم بـ HK STORE'){
  .toolbar button,.toolbar select{font:14px Tahoma;padding:8px 12px;border:1px solid #888;border-radius:6px;background:white;color:#111}
  h2,h3{margin:8px 0}hr{border:0;border-top:1px dashed #555}table{width:100%;border-collapse:collapse;text-align:right}
  td{padding:7px 5px;border-bottom:${p.borders?'1px solid #ddd':'0'}}td:first-child{font-weight:bold;width:42%}
- .muted{font-size:.85em;color:#555}.sheet{max-width:${p.paper==='A4'?'210mm':p.paper==='A5'?'148mm':p.paper};margin:12px auto;background:white}
- @page{size:${paper};margin:${p.margin}mm}
- @media print{body{padding:0}.toolbar{display:none!important}.sheet{max-width:none;margin:0;width:100%}}
+ .muted{font-size:.85em;color:#555}.sheet{width:${p.paper==='58mm'?'58mm':p.paper==='80mm'?'80mm':'100%'};max-width:${p.paper==='A4'?'210mm':p.paper==='A5'?'148mm':p.paper};margin:12px auto;background:white}
+ @page{size:${paper};margin:${thermal?'0':p.margin+'mm'}}
+ @media print{body{padding:0}.toolbar{display:none!important}.sheet{max-width:none;margin:0;width:${p.paper==='58mm'?'58mm':p.paper==='80mm'?'80mm':'100%'}}}
  @media screen{body{background:#e4e8eb}.sheet{padding:12px;box-shadow:0 2px 12px #0002;min-height:180px}}
  </style></head><body>
  <div class="toolbar"><b style="align-self:center">معاينة قبل الطباعة</b>
@@ -678,7 +679,7 @@ function printDocument(title,rows,note='شكراً لثقتكم بـ HK STORE'){
  <script>
  const paper=document.getElementById('pvPaper'),font=document.getElementById('pvFont'),orient=document.getElementById('pvOrient');
  paper.value=${JSON.stringify(p.paper)};font.value=${JSON.stringify(String(p.fontSize))};orient.value=${JSON.stringify(p.orientation)};
- function updatePreview(){document.documentElement.style.setProperty('--fs',font.value+'px');let size=(paper.value==='58mm'||paper.value==='80mm')?paper.value:paper.value+' '+orient.value;let st=document.getElementById('dynamicPageRule');if(!st){st=document.createElement('style');st.id='dynamicPageRule';document.head.append(st)}st.textContent='@page{size:'+size+';margin:${p.margin}mm}';document.querySelector('.sheet').style.maxWidth=paper.value==='A4'?'210mm':paper.value==='A5'?'148mm':paper.value}
+ function updatePreview(){document.documentElement.style.setProperty('--fs',font.value+'px');let thermal=paper.value==='58mm'||paper.value==='80mm';let size=thermal?'auto':paper.value+' '+orient.value;let st=document.getElementById('dynamicPageRule');if(!st){st=document.createElement('style');st.id='dynamicPageRule';document.head.append(st)}st.textContent='@page{size:'+size+';margin:'+(thermal?'0':'${p.margin}mm')+'}';document.querySelector('.sheet').style.width=paper.value==='58mm'?'58mm':paper.value==='80mm'?'80mm':'100%';document.querySelector('.sheet').style.maxWidth=paper.value==='A4'?'210mm':paper.value==='A5'?'148mm':paper.value}
  paper.onchange=orient.onchange=font.onchange=updatePreview;document.getElementById('doPrint').onclick=()=>window.print();document.getElementById('closePreview').onclick=()=>window.close();updatePreview();
  <\/script></body></html>`;
  w.document.open();w.document.write(html);w.document.close();

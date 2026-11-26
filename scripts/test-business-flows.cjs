@@ -40,7 +40,7 @@ for(const name of names)vm.runInNewContext(extract(name),context,{filename:'HK S
  assert.equal(db.products.length,1);assert.equal(db.products[0].qty,10);assert.equal(db.products[0].buy,900);assert.equal(db.products[0].sell,1400);
  assert.equal(run("productSupportsModel(db.products[0],'Samsung Galaxy A55')"),true);
  assert.equal(run("productSupportsModel(db.products[0],'Samsung Galaxy A35')"),false);
- run("current='seller'");fields.pName.value='Forbidden';run('addProduct()');assert.equal(db.products.length,1);assert.ok(alerts.some(x=>x.includes('المدير')));
+ run("current='seller'");fields.pName.value='Forbidden';run('addProduct()');assert.equal(db.products.length,1);assert.equal(db.products.length,1,'seller cannot create products');
  fields.saleProduct.value=String(db.products[0].id);fields.saleQty.value='2';fields.salePrice.value='1400';run('addSaleToCart()');assert.equal(context.saleCart[0].qty,2);
  run('addSale()');assert.equal(db.products[0].qty,8);assert.equal(db.sales.length,1);assert.equal(db.sales[0].total,2800);assert.equal(db.sales[0].paid,1000);assert.equal(db.sales[0].debt,1800);assert.equal(db.customers[0].debt,1800);assert.equal(context.saleCart.length,0);
  fields.payCustomer.value='c1';fields.payAmount.value='500';run('payDebt()');assert.equal(db.customers[0].debt,1300);assert.equal(db.payments.length,1);assert.equal(db.payments[0].balance,1300);

@@ -1,10 +1,17 @@
 'use strict';
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
+const nodeCrypto = require('crypto');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 require('../server/lan-server.cjs');
 let aiProcess=null;
+ipcMain.handle('hk:password-random-salt',()=>nodeCrypto.randomBytes(16).toString('hex'));
+ipcMain.handle('hk:password-derive',(_event,{password,saltHex,iterations})=>{
+ if(typeof password!=='string'||typeof saltHex!=='string'||!/^(?:[a-f0-9]{2})+$/i.test(saltHex))throw new Error('invalid_password_parameters');
+ const rounds=Math.max(100000,Math.min(1000000,Number(iterations)||310000));
+ return nodeCrypto.pbkdf2Sync(password,Buffer.from(saltHex,'hex'),rounds,32,'sha256').toString('hex');
+});
 function aiAsset(...parts){
  const root=app.isPackaged?path.join(process.resourcesPath,'ai'):path.join(__dirname,'..','resources','ai');
  return path.join(root,...parts);
@@ -35,7 +42,7 @@ async function waitForBundledAI(){
  return false;
 }
 function createWindow(){
- const win=new BrowserWindow({width:1280,height:850,minWidth:900,minHeight:650,backgroundColor:'#0d151d',autoHideMenuBar:true,webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true}});
+ const win=new BrowserWindow({width:1280,height:850,minWidth:900,minHeight:650,backgroundColor:'#0d151d',autoHideMenuBar:true,webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
  win.loadFile(path.join(__dirname,'..','www','index.html'));
 }
 app.whenReady().then(()=>{

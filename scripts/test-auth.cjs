@@ -11,7 +11,7 @@ assert.ok(helpers,'password helper block exists');
 assert.match(html,/<input id="loginUsername"[^>]*value="manager"/,'login screen exposes an editable username field');
 assert.match(match[1],/function resolveLoginUsername\(value\)/,'username resolver exists');
 assert.match(match[1],/resolveLoginUsername\(\$\('loginUsername'\)\.value\)/,'login uses the editable username field');
-const context={crypto:webcrypto,TextEncoder,Uint8Array,Array,String,Number,Error};
+const context={crypto:webcrypto,TextEncoder,Uint8Array,Array,String,Number,Error,window:{}};
 vm.runInNewContext(helpers[0],context,{filename:'password-helpers'});
 (async()=>{
  const userA={name:'Test A',pin:'legacy123'};
